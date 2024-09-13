@@ -39,11 +39,17 @@ const hasAbility = (ability) => {
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Панель
                                 </NavLink>
-                                <NavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')" :active="route().current('categories.index')">
-                                    Настройка категорий
+                                <NavLink :href="route('clients.index')" :active="route().current('clients.index')">
+                                    Клиенты
+                                </NavLink>
+                                <NavLink :href="route('leads.index')" :active="route().current('leads.index')">
+                                    Лиды
                                 </NavLink>
                                 <NavLink v-if="hasAbility('manage-categories')" :href="route('sales.index')" :active="route().current('sales.index')">
                                     Продажи
+                                </NavLink>
+                                <NavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')" :active="route().current('categories.index')">
+                                    Настройка категорий
                                 </NavLink>
                             </div>
                         </div>

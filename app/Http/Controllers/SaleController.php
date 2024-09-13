@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\CategoryCost;
+use App\Models\CategoryCostAdditional;
 use App\Models\Sale;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -25,7 +27,14 @@ class SaleController extends Controller
         $this->authorize('manage-sales');
 
         $categories = Category::where('director_id', auth()->user()->id)->get();
-        return Inertia::render('Sales', ['categories' => $categories]);
+
+        // Получаем все настройки стоимости
+        $categoryCosts = CategoryCost::with('additionalCosts')->get();
+
+        return Inertia::render('Sales', [
+            'categories' => $categories,
+            'categoryCosts' => $categoryCosts,
+        ]);
     }
 
     public function store(Request $request)

@@ -1,0 +1,118 @@
+<script setup>
+import InputError from "@/Components/InputError.vue";
+import {useForm, usePage} from "@inertiajs/vue3";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
+
+const form = useForm({
+    surname: null,
+    name: null,
+    patronymic: null,
+    birthdate: null,
+    workplace: null,
+    phone: null,
+    email: null,
+    telegram: null,
+    instagram: null,
+    address: null,
+    gender: "male",
+    ad_source: null,
+    is_lead: null,
+    director_id: usePage().props.auth.user.id,
+});
+
+const emit = defineEmits(['submit']);
+const props = defineProps({
+    isLead: {
+        type: Boolean,
+        required: true,
+    },
+    sourceOptions:{
+        type: Array,
+        required: false,
+    },
+});
+
+const submitForm = () => {
+    emit('submit', form);
+};
+</script>
+
+<template>
+    <div class="bg-white px-4 pb-4 sm:p-6 sm:pb-4">
+        <form @submit.prevent="submitForm">
+            <div class="flex flex-row flex-wrap gap-1 items-end">
+                <div class="flex flex-col">
+                    <label for="surname" class="text-sm font-medium text-gray-700">Фамилия</label>
+                    <input type="text" v-model="form.surname" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.surname" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="name" class="text-sm font-medium text-gray-700">Имя<span class="text-red-600">*</span></label>
+                    <input type="text" required v-model="form.name" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.name" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="patronymic" class="text-sm font-medium text-gray-700">Отчество</label>
+                    <input type="text" v-model="form.patronymic" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.patronymic" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col col-span-1 w-32">
+                    <label for="birthdate" class="text-sm font-medium text-gray-700">Дата рождения</label>
+                    <input type="date" v-model="form.birthdate" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.birthdate" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="workplace" class="text-sm font-medium text-gray-700">Место работы</label>
+                    <input type="text" v-model="form.workplace" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.workplace" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="phone" class="text-sm font-medium text-gray-700">Телефон</label>
+                    <input type="text" v-model="form.phone" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.phone" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="email" class="text-sm font-medium text-gray-700">Почта</label>
+                    <input type="text" v-model="form.email" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.email" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="telegram" class="text-sm font-medium text-gray-700">Телеграм</label>
+                    <input type="text" v-model="form.telegram" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.telegram" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="instagram" class="text-sm font-medium text-gray-700">Инстаграм</label>
+                    <input type="text" v-model="form.instagram" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.instagram" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="address" class="text-sm font-medium text-gray-700">Адрес</label>
+                    <input type="text" v-model="form.address" class="p-1 border border-gray-300 rounded-md"/>
+                    <InputError :message="form.errors.address" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col w-14">
+                    <label for="gender" class="text-sm font-medium text-gray-700">Пол</label>
+                    <select v-model="form.gender" class="p-1 border border-gray-300 rounded-md">
+                        <option value="male">М</option>
+                        <option value="female">Ж</option>
+                    </select>
+                    <InputError :message="form.errors.gender" class="mt-2 text-sm text-red-600"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
+                    <select id="ad_source" v-model="form.ad_source" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <option v-for="source in sourceOptions"
+                                :value="source.name" :key="source.id">{{ source.name }}
+                        </option>
+                    </select>
+                    <InputError :message="form.errors.ad_source" class="mt-2 text-sm text-red-600"/>
+                </div>
+            </div>
+            <div class="mt-6">
+                <PrimaryButton v-if="props.isLead" type="submit">Создать лид</PrimaryButton>
+                <PrimaryButton v-else type="submit">Создать клиента</PrimaryButton>
+            </div>
+        </form>
+    </div>
+</template>
