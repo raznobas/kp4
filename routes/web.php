@@ -4,8 +4,8 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ChirpController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -35,10 +35,6 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::resource('chirps', ChirpController::class)
-    ->only(['index', 'store', 'update', 'destroy'])
-    ->middleware(['auth', 'verified']);
-
 Route::resource('categories', CategoryController::class)
     ->only(['index', 'store', 'update', 'destroy', 'destroyCost'])
     ->middleware(['auth', 'verified', 'can:manage-categories']);
@@ -52,17 +48,31 @@ Route::delete('/categories/destroy-cost/{id}', [CategoryController::class, 'dest
     ->middleware(['auth', 'verified', 'can:manage-categories']);
 
 Route::resource('sales', SaleController::class)
-    ->only(['index', 'store', 'update', 'destroy'])
+    ->only(['index', 'store', 'update', 'destroy', 'show'])
     ->middleware(['auth', 'verified', 'can:manage-sales']);
 
-Route::get('/clients/search', [ClientController::class, 'search'])
-    ->name('clients.search');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::prefix('clients')->group(function () {
+        Route::get('/search', [ClientController::class, 'search'])->name('clients.search');
+        Route::get('/renewals', [ClientController::class, 'renewals'])->name('clients.renewals');
+        Route::get('/trials', [ClientController::class, 'trials'])->name('clients.trials');
+        Route::get('/old', [ClientController::class, 'old'])->name('clients.old');
+        Route::get('/source-options', [ClientController::class, 'getSourceOptions'])->name('clients.getSourceOptions');
+        Route::resource('/', ClientController::class)
+            ->only(['index', 'store', 'update', 'destroy', 'show'])
+            ->names([
+                'index' => 'clients.index', 'store' => 'clients.store', 'update' => 'clients.update',
+                'destroy' => 'clients.destroy', 'show' => 'clients.show',
+            ])
+            ->parameters(['' => 'client']);
+    });
+});
 
-Route::resource('clients', ClientController::class)
+Route::resource('leads', LeadController::class)
     ->only(['index', 'store', 'update', 'destroy', 'show'])
     ->middleware(['auth', 'verified']);
 
-Route::resource('leads', LeadController::class)
+Route::resource('tasks', TaskController::class)
     ->only(['index', 'store', 'update', 'destroy', 'show'])
     ->middleware(['auth', 'verified']);
 

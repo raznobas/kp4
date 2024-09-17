@@ -23,10 +23,6 @@ class User extends Authenticatable
         'email',
         'password',
     ];
-    public function chirps(): HasMany
-    {
-        return $this->hasMany(Chirp::class);
-    }
 
 
     /**

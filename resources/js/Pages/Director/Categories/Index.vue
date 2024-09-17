@@ -164,7 +164,7 @@ const getCategoryName = (categoryId) => {
         <div class="max-w-3xl mx-auto bg-white shadow-sm rounded-lg divide-y mb-6">
             <div v-for="(cost, index) in categoryCosts" :key="cost.id" class="px-4 py-2">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-medium text-gray-900">Сборка стоимости #{{ index + 1 }}</h2>
+                    <h2 class="text-lg font-medium text-gray-900">Связка стоимости #{{ index + 1 }}</h2>
                     <button @click="deleteCost(cost.id)" class="text-red-600 text-sm hover:text-red-800">Удалить</button>
                 </div>
                 <div class="mt-1 text-sm text-gray-500">

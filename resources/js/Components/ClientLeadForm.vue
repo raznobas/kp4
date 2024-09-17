@@ -2,6 +2,7 @@
 import InputError from "@/Components/InputError.vue";
 import {useForm, usePage} from "@inertiajs/vue3";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
+import {onMounted, ref} from "vue";
 
 const form = useForm({
     surname: null,
@@ -26,15 +27,19 @@ const props = defineProps({
         type: Boolean,
         required: true,
     },
-    sourceOptions:{
-        type: Array,
-        required: false,
-    },
 });
-
+const sourceOptions = ref(null);
+const getSourceOptions = async () => {
+    const responseSourceOptions = await axios.get(route('clients.getSourceOptions'));
+    sourceOptions.value = responseSourceOptions.data;
+};
 const submitForm = () => {
     emit('submit', form);
 };
+
+onMounted(() => {
+    getSourceOptions();
+});
 </script>
 
 <template>

@@ -10,23 +10,26 @@ import 'vue-multiselect/dist/vue-multiselect.css';
 import ClientModal from "@/Components/ClientModal.vue";
 import Modal from "@/Components/Modal.vue";
 import ClientLeadForm from "@/Components/ClientLeadForm.vue";
+import dayjs from "dayjs";
+import Pagination from "@/Components/Pagination.vue";
 
-const props = defineProps(['categories']);
+const props = defineProps(['categories', 'leads']);
 
 const form = useForm({
     sale_date: new Date().toISOString().split('T')[0],
     client_object: null,
-    service_or_product: null,
+    client_id: null,
     sport_type: null,
     service_type: null,
     trainer: null,
-    date_appointment: null,
-    time_appointment: null,
+    training_date: null,
+    training_time: null,
     hasAppointment: false,
 });
 
 const submit = () => {
-    form.post(route('sales.store'), {
+    form.client_id = form.client_object.id;
+    form.post(route('leads.store'), {
         onSuccess: () => form.reset(),
     });
 };
@@ -37,7 +40,7 @@ const searchResults = ref([]);
 const searchClients = async (query, isLead = true) => {
     if (query.length > 2) {
         try {
-            const url = route('clients.search', { query, is_lead: isLead });
+            const url = route('clients.search', {query, is_lead: isLead});
             const response = await axios.get(url);
             searchResults.value = response.data;
         } catch (error) {
@@ -62,6 +65,7 @@ const selectedClientCard = ref(null);
 const handleClientUpdated = (updatedClient) => {
     // Обновляем данные о клиенте после того как с дочернего компонента пришел emit после обновления данных
     selectedClientCard.value = updatedClient;
+    form.client_object = updatedClient;
 };
 const openModal = async (clientId) => {
     try {
@@ -85,10 +89,7 @@ const createLead = (formData) => {
     closeModal();
 };
 
-// сортировка для передачи в компонент только категорий источников
-const adSourceCategories = computed(() => {
-    return props.categories.filter(category => category.type === 'ad_source');
-});
+
 </script>
 
 <template>
@@ -98,7 +99,7 @@ const adSourceCategories = computed(() => {
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
             <PrimaryButton type="button" @click="showLeadModal = true;">+ Новый лид</PrimaryButton>
             <Modal :show="showLeadModal" @close="closeModal">
-                <ClientLeadForm :is-lead="true" :source-options="adSourceCategories" @submit="createLead" />
+                <ClientLeadForm :is-lead="true" @submit="createLead"/>
             </Modal>
             <form @submit.prevent="submit" class="mt-6">
                 <div class="flex flex-row flex-wrap gap-2 items-end mt-2">
@@ -112,39 +113,42 @@ const adSourceCategories = computed(() => {
                     <div class="flex flex-col w-56 relative">
                         <label for="fio" class="text-sm font-medium text-gray-700">Имя
                             <span v-if="form.client_object">
-                                <button type="button" @click="openModal(form.client_object)" class="text-indigo-600 hover:text-indigo-900">(карточка)</button>
+                                <button type="button" @click="openModal(form.client_object)"
+                                        class="text-indigo-600 hover:text-indigo-900">(карточка)</button>
                             </span>
                         </label>
                         <vue-multiselect id="fio"
-                            v-model="form.client_object"
-                            :options="searchResults"
-                            :searchable="true"
-                            :max-height="400"
-                            :options-limit="200"
-                            :placeholder="'Поиск'"
-                            :show-labels="false"
-                            :custom-label="fullName"
-                            :internal-search="false"
-                            track-by="id"
-                            @search-change="searchClients"
+                                         v-model="form.client_object"
+                                         :options="searchResults"
+                                         :searchable="true"
+                                         :max-height="400"
+                                         :options-limit="200"
+                                         :placeholder="'Поиск по имени'"
+                                         :show-labels="false"
+                                         :custom-label="fullName"
+                                         :internal-search="false"
+                                         track-by="id"
+                                         @search-change="searchClients"
                         >
                             <template v-slot:option="props">
                                 {{ props.option.surname }} {{ props.option.name }} {{ props.option.patronymic }}
                             </template>
                         </vue-multiselect>
                     </div>
-                    <div class="flex flex-col">
-                        <label for="service_or_product" class="text-sm font-medium text-gray-700">Услуга/Товар</label>
-                        <select id="service_or_product" required v-model="form.service_or_product" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
-                        >
-                            <option value="service">Услуга</option>
-                            <option value="product">Товар</option>
-                        </select>
-                        <InputError :message="form.errors.service_or_product" class="mt-2 text-sm text-red-600"/>
+                    <div v-if="form.client_object" class="flex flex-col w-32 cursor-not-allowed">
+                        <label for="phone" class="text-sm font-medium text-gray-700">Телефон</label>
+                        <input disabled :placeholder="form.client_object?.phone ?? 'Отсутствует'"
+                               type="text" class="p-1 border border-gray-300 rounded-md"/>
+                    </div>
+                    <div v-if="form.client_object" class="flex flex-col w-32 cursor-not-allowed">
+                        <label for="phone" class="text-sm font-medium text-gray-700">Источник</label>
+                        <input disabled :placeholder="form.client_object?.ad_source ?? 'Отсутствует'"
+                               type="text" class="p-1 border border-gray-300 rounded-md"/>
                     </div>
                     <div class="flex flex-col">
                         <label for="sport_type" class="text-sm font-medium text-gray-700">Вид спорта</label>
-                        <select id="sport_type" v-model="form.sport_type" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                        <select id="sport_type" v-model="form.sport_type"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
                             <option v-for="category in categories.filter(c => c.type === 'sport_type')"
                                     :value="category.name" :key="category.id">{{ category.name }}
@@ -154,7 +158,8 @@ const adSourceCategories = computed(() => {
                     </div>
                     <div class="flex flex-col">
                         <label for="service_type" class="text-sm font-medium text-gray-700">Вид услуги</label>
-                        <select id="service_type" v-model="form.service_type" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <select id="service_type" v-model="form.service_type"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option value="group">Групповая</option>
                             <option value="minigroup">Минигруппа</option>
                             <option value="individual">Индивидуальная</option>
@@ -164,7 +169,8 @@ const adSourceCategories = computed(() => {
                     </div>
                     <div class="flex flex-col">
                         <label for="trainer" class="text-sm font-medium text-gray-700">Тренер</label>
-                        <select id="trainer" v-model="form.trainer" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                        <select id="trainer" v-model="form.trainer"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
                             <option v-for="category in categories.filter(c => c.type === 'trainer')"
                                     :value="category.name" :key="category.id">{{ category.name }}
@@ -174,18 +180,19 @@ const adSourceCategories = computed(() => {
                     </div>
                     <div class="flex flex-col">
                         <label class="text-sm font-medium text-gray-700">Запись</label>
-                        <input type="checkbox" v-model="form.hasAppointment" class="mt-1 p-3 border border-gray-300 rounded-md"/>
+                        <input type="checkbox" v-model="form.hasAppointment"
+                               class="mt-1 p-3 border border-gray-300 rounded-md"/>
                     </div>
                     <div class="flex flex-col w-32" :class="{ 'disabled-field': !form.hasAppointment }">
-                        <label for="date_appointment" class="text-sm font-medium text-gray-700">Дата записи</label>
-                        <input id="date_appointment" type="date" v-model="form.date_appointment"
+                        <label for="training_date" class="text-sm font-medium text-gray-700">Дата записи</label>
+                        <input id="training_date" type="date" v-model="form.training_date"
                                class="mt-1 p-1 border border-gray-300 rounded-md"
-                               :disabled="!form.hasAppointment"
+                               :disabled="!form.hasAppointment" required
                         />
                     </div>
                     <div class="flex flex-col w-32" :class="{ 'disabled-field': !form.hasAppointment }">
-                        <label for="time_appointment" class="text-sm font-medium text-gray-700">Время записи</label>
-                        <input id="time_appointment" type="time" v-model="form.time_appointment"
+                        <label for="training_time" class="text-sm font-medium text-gray-700">Время записи</label>
+                        <input id="training_time" type="time" v-model="form.training_time"
                                class="mt-1 p-1 border border-gray-300 rounded-md"
                                :disabled="!form.hasAppointment"
                         />
@@ -193,10 +200,54 @@ const adSourceCategories = computed(() => {
                 </div>
                 <div class="mt-4">
                     <PrimaryButton :disabled="form.processing">Добавить запись</PrimaryButton>
-                    <SecondaryButton class="ml-2" type="button" @click="() => { form.reset(); }">Очистить</SecondaryButton>
+                    <SecondaryButton class="ml-2" type="button" @click="() => { form.reset(); }">Очистить
+                    </SecondaryButton>
                 </div>
             </form>
-            <ClientModal :show="showModal" :client="selectedClientCard" @close="closeModal" @client-updated="handleClientUpdated" />
+            <ClientModal :show="showModal" :client="selectedClientCard"
+                         @close="closeModal" @client-updated="handleClientUpdated"/>
+            <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список лидов вашей организации</h3>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Отчество
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата
+                        рождения
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Действия
+                    </th>
+                </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="lead in leads.data" :key="lead.id">
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.id }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.surname }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.name }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.patronymic }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        {{ lead.birthdate ? dayjs(lead.birthdate).format('DD.MM.YYYY') : '' }}
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.phone }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ lead.email }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <button @click="openModal(lead.id)" class="text-indigo-600 hover:text-indigo-900">Карточка
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <Pagination :items="leads"/>
         </div>
     </AuthenticatedLayout>
 </template>

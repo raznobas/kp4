@@ -24,4 +24,14 @@ class Client extends Model
         'director_id',
         'is_lead',
     ];
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Sale extends Model
+class LeadAppointment extends Model
 {
     use HasFactory;
 
@@ -15,16 +15,9 @@ class Sale extends Model
         'service_or_product',
         'sport_type',
         'service_type',
-        'product_type',
-        'subscription_duration',
-        'visits_per_week',
-        'training_count',
-        'trainer_category',
         'trainer',
-        'subscription_start_date',
-        'subscription_end_date',
-        'cost',
-        'paid_amount',
-        'pay_method',
+        'training_date',
+        'training_time',
+        'status',
     ];
 }

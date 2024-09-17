@@ -1,5 +1,5 @@
 <script setup>
-import {defineProps, defineEmits, ref, watch} from 'vue';
+import {defineProps, defineEmits, ref, watch, computed, onMounted} from 'vue';
 import Modal from './Modal.vue';
 import SecondaryButton from './SecondaryButton.vue';
 import dayjs from "dayjs";
@@ -13,12 +13,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'client-updated']);
-const form = useForm({
-    client_id: props?.client?.id,
-    user_sender_id: usePage().props.auth.user.id,
-    task_description: null,
-    task_date: null,
-});
 const formEdit = useForm({
     id: props?.client?.id,
     surname: props?.client?.surname,
@@ -34,23 +28,77 @@ const formEdit = useForm({
     gender: props?.client?.gender,
     ad_source: props?.client?.ad_source,
 });
+const formTask = useForm({
+    client_id: null,
+    user_sender_id: usePage().props.auth.user.id,
+    task_description: null,
+    task_date: null,
+});
 watch(() => props.client, newClient => {
     if (newClient) {
         Object.assign(formEdit, JSON.parse(JSON.stringify(newClient)));
+        loadClientSales(newClient.id);
+        fetchTasks(newClient.id);
     }
-}, { deep: true });
+}, {deep: true});
+
+// получения списка всех покупок клиента
+const clientSales = ref([]);
+const totalSalesByClient = ref(0);
+const loadClientSales = async (clientId) => {
+    try {
+        const response = await axios.get(route('sales.show', clientId));
+        clientSales.value = response.data;
+        calculateTotalSales();
+        sortClientSalesByDate();
+    } catch (error) {
+        console.error('Ошибка при загрузке данных о продажах:', error);
+    }
+};
+
+const firstSaleDate = computed(() => {
+    return clientSales.value.length > 0 ? dayjs(clientSales.value[0].sale_date).format('DD.MM.YYYY') : '-';
+});
+
+// Вычисляемое свойство для общей суммы продаж
+const calculateTotalSales = () => {
+    totalSalesByClient.value = clientSales.value.reduce((total, sale) => {
+        const paidAmount = parseFloat(sale.paid_amount);
+        if (!isNaN(paidAmount)) {
+            return total + paidAmount;
+        }
+        return total;
+    }, 0);
+};
+
+// сортировка продаж по дате убывания
+const sortClientSalesByDate = () => {
+    if (!clientSales.value || clientSales.value.length === 0) {
+        return;
+    }
+    clientSales.value.sort((a, b) => {
+        const dateA = dayjs(a.created_at);
+        const dateB = dayjs(b.created_at);
+        return dateB.diff(dateA); // Сортировка по убыванию
+    });
+};
 
 const submit = () => {
-    form.post(route('tasks.store'), {
+    formTask.client_id = props.client.id;
+    formTask.post(route('tasks.store'), {
         onSuccess: () => {
-            form.reset();
+            formTask.reset();
             isEditing.value = false;
+            fetchTasks(props.client.id)
         },
     });
 };
 const isEditing = ref(false);
-const editClient = () => {
+const sourceOptions = ref(null);
+const editClient = async () => {
     isEditing.value = !isEditing.value;
+    const responseSourceOptions = await axios.get(route('clients.getSourceOptions'));
+    sourceOptions.value = responseSourceOptions.data;
 };
 
 const submitEdit = () => {
@@ -60,7 +108,7 @@ const submitEdit = () => {
         return;
     }
 
-    formEdit.put(route('clients.update', { id: props.client.id }), {
+    formEdit.put(route('clients.update', {id: props.client.id}), {
         onSuccess: () => {
             isEditing.value = false;
             emit('client-updated', formEdit.data());
@@ -72,15 +120,27 @@ const closeModal = () => {
     emit('close');
     isEditing.value = false;
 };
+
+// запрос на получение всех задач текущего клиента
+const tasks = ref([]);
+const fetchTasks = async (clientId) => {
+    try {
+        const response = await axios.get(route('tasks.show', clientId));
+        tasks.value = response.data;
+    } catch (error) {
+        console.error('Ошибка при получении задач:', error);
+    }
+};
 </script>
 
 <template>
     <Modal :show="show" @close="closeModal">
         <div v-if="client" class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="">
+            <div>
                 <div class="mt-3 text-center sm:mt-0 sm:text-left">
                     <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                        Информация о лид/клиенте
+                        <span v-if="client.is_lead === 1">Информация о лид</span>
+                        <span v-else>Информация о клиенте</span>
                         <span class="ml-1">
                             <button title="Редактировать" type="button" @click="editClient" class="mt-1">
                                 <i class="fa fa-pencil-square-o text-xl" aria-hidden="true"></i>
@@ -88,7 +148,7 @@ const closeModal = () => {
                         </span>
                     </h3>
                     <div class="mt-2">
-                        <div v-if="!isEditing">
+                        <div class="flex gap-2 justify-between" v-if="!isEditing">
                             <p class="text-sm text-gray-500">
                                 <strong>Фамилия:</strong> {{ client.surname }}<br>
                                 <strong>Имя:</strong> {{ client.name }}<br>
@@ -104,57 +164,76 @@ const closeModal = () => {
                                 <strong>Пол:</strong> {{ client.gender === 'male' ? 'М' : 'Ж' }}<br>
                                 <strong>Источник:</strong> {{ client.ad_source }}
                             </p>
+                            <p class="text-sm text-gray-500">
+                                <strong>Дата первого обращения в клуб:</strong>
+                                {{ client.created_at ? dayjs(client.created_at).format('DD.MM.YYYY') : '' }}<br>
+                                <strong>Дата первого посещения:</strong> {{ firstSaleDate }}
+                            </p>
                         </div>
                         <form v-else @submit.prevent="submitEdit">
                             <div class="flex flex-row flex-wrap gap-1 items-end">
                                 <div class="flex flex-col">
                                     <label for="surname" class="text-sm font-medium text-gray-700">Фамилия</label>
-                                    <input type="text" v-model="formEdit.surname" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.surname"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.surname" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
-                                    <label for="name" class="text-sm font-medium text-gray-700">Имя<span class="text-red-600">*</span></label>
-                                    <input type="text" required v-model="formEdit.name" class="p-1 border border-gray-300 rounded-md"/>
+                                    <label for="name" class="text-sm font-medium text-gray-700">Имя<span
+                                        class="text-red-600">*</span></label>
+                                    <input type="text" required v-model="formEdit.name"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.name" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="patronymic" class="text-sm font-medium text-gray-700">Отчество</label>
-                                    <input type="text" v-model="formEdit.patronymic" class="p-1 border border-gray-300 rounded-md"/>
-                                    <InputError :message="formEdit.errors.patronymic" class="mt-2 text-sm text-red-600"/>
+                                    <input type="text" v-model="formEdit.patronymic"
+                                           class="p-1 border border-gray-300 rounded-md"/>
+                                    <InputError :message="formEdit.errors.patronymic"
+                                                class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col col-span-1 w-32">
-                                    <label for="birthdate" class="text-sm font-medium text-gray-700">Дата рождения</label>
-                                    <input type="date" v-model="formEdit.birthdate" class="p-1 border border-gray-300 rounded-md"/>
+                                    <label for="birthdate" class="text-sm font-medium text-gray-700">Дата
+                                        рождения</label>
+                                    <input type="date" v-model="formEdit.birthdate"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.birthdate" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
-                                    <label for="workplace" class="text-sm font-medium text-gray-700">Место работы</label>
-                                    <input type="text" v-model="formEdit.workplace" class="p-1 border border-gray-300 rounded-md"/>
+                                    <label for="workplace" class="text-sm font-medium text-gray-700">Место
+                                        работы</label>
+                                    <input type="text" v-model="formEdit.workplace"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.workplace" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="phone" class="text-sm font-medium text-gray-700">Телефон</label>
-                                    <input type="text" v-model="formEdit.phone" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.phone"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.phone" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="email" class="text-sm font-medium text-gray-700">Почта</label>
-                                    <input type="text" v-model="formEdit.email" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.email"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.email" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="telegram" class="text-sm font-medium text-gray-700">Телеграм</label>
-                                    <input type="text" v-model="formEdit.telegram" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.telegram"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.telegram" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="instagram" class="text-sm font-medium text-gray-700">Инстаграм</label>
-                                    <input type="text" v-model="formEdit.instagram" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.instagram"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.instagram" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="address" class="text-sm font-medium text-gray-700">Адрес</label>
-                                    <input type="text" v-model="formEdit.address" class="p-1 border border-gray-300 rounded-md"/>
+                                    <input type="text" v-model="formEdit.address"
+                                           class="p-1 border border-gray-300 rounded-md"/>
                                     <InputError :message="formEdit.errors.address" class="mt-2 text-sm text-red-600"/>
                                 </div>
                                 <div class="flex flex-col w-14">
@@ -167,34 +246,129 @@ const closeModal = () => {
                                 </div>
                                 <div class="flex flex-col">
                                     <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
-                                    <input type="text" v-model="formEdit.ad_source" class="p-1 border border-gray-300 rounded-md"/>
+                                    <select id="ad_source" v-model="formEdit.ad_source"
+                                            class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                                        <option v-for="source in sourceOptions"
+                                                :value="source.name" :key="source.id">{{ source.name }}
+                                        </option>
+                                    </select>
                                     <InputError :message="formEdit.errors.ad_source" class="mt-2 text-sm text-red-600"/>
                                 </div>
                             </div>
                             <div class="mt-2 mb-4 flex gap-2">
                                 <PrimaryButton size="small" type="submit">Сохранить</PrimaryButton>
-                                <SecondaryButton size="small" type="button" @click="isEditing = false">Отмена</SecondaryButton>
+                                <SecondaryButton size="small" type="button" @click="isEditing = false">Отмена
+                                </SecondaryButton>
                             </div>
                         </form>
                     </div>
                     <form @submit.prevent="submit">
                         <div class="mt-2 flex">
-                            <h3 class="text-lg mr-2">Задача на дату</h3>
+                            <h3 class="text-md font-medium mr-2">Задача на дату</h3>
                             <div class="flex w-32">
                                 <input type="date"
-                                       v-model="form.task_date"
-                                       class="p-0 pl-1 border border-gray-300 rounded-md"
+                                       v-model="formTask.task_date"
+                                       class="p-0 pl-1 border border-gray-300 rounded-md" required
                                 />
                             </div>
                         </div>
                         <div class="mt-2">
                             <textarea rows="3"
-                                      v-model="form.task_description"
+                                      v-model="formTask.task_description"
                                       class="w-full p-1 border border-gray-300 rounded-md text-sm"
-                                      placeholder="Введите задачу по лиду/клиенту"></textarea>
+                                      placeholder="Введите задачу по лиду/клиенту" required>
+                            </textarea>
                         </div>
                         <secondary-button size="small" type="submit">Отправить задачу</secondary-button>
                     </form>
+                    <div v-if="tasks.length > 0" class="mt-2">
+                        <h4 class="text-md font-medium text-gray-700 mt-2">Все задачи на текущего клиента</h4>
+                        <div class="overflow-x-auto mt-1">
+                            <table class="w-full text-xs border-collapse border border-slate-600">
+                                <thead>
+                                <tr>
+                                    <th class="p-1 border border-slate-600 text-left w-16">Дата</th>
+                                    <th class="p-1 border border-slate-600 text-left">Описание</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="task in tasks" :key="task.id" class="border-b">
+                                    <td class="p-1 border border-slate-600 w-16">
+                                        {{ task.task_date ? dayjs(task.task_date).format('DD.MM.YY') : '' }}
+                                    </td>
+                                    <td class="p-1 border border-slate-600">
+                                        {{ task.task_description }}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div v-if="clientSales.length > 0" class="mt-2">
+                        <h4 class="text-md font-medium text-gray-700 mt-2">Все продажи на сумму:
+                            {{ Number(totalSalesByClient) }} &#8381;</h4>
+                        <div class="overflow-x-auto mt-1">
+                            <table class="w-full text-xs border-collapse border border-slate-600">
+                                <thead>
+                                <tr>
+                                    <th class="p-1 border border-slate-600 text-left">Дата</th>
+                                    <th class="p-1 border border-slate-600 text-left">Вид продажи</th>
+                                    <th class="p-1 border border-slate-600 text-left">Вид спорта</th>
+                                    <th class="p-1 border border-slate-600 text-left">Тип услуги</th>
+                                    <th class="p-1 border border-slate-600 text-left">Тип продукта</th>
+                                    <th class="p-1 border border-slate-600 text-left">Длит. абонем.</th>
+                                    <th class="p-1 border border-slate-600 text-left">Посещ. в нед.</th>
+                                    <th class="p-1 border border-slate-600 text-left">Кол-во тренировок</th>
+                                    <th class="p-1 border border-slate-600 text-left">Тренер</th>
+                                    <th class="p-1 border border-slate-600 text-left">Категория тренера</th>
+                                    <th class="p-1 border border-slate-600 text-left">Начало абонем.</th>
+                                    <th class="p-1 border border-slate-600 text-left">Конец абонем.</th>
+                                    <th class="p-1 border border-slate-600 text-left">Цена</th>
+                                    <th class="p-1 border border-slate-600 text-left">Оплачено</th>
+                                    <th class="p-1 border border-slate-600 text-left">Метод оплаты</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="sale in clientSales" :key="sale.id" class="border-b">
+                                    <td class="p-1 border border-slate-600">
+                                        {{ sale.sale_date ? dayjs(sale.sale_date).format('DD.MM.YY') : '' }}
+                                    </td>
+                                    <td class="p-1 border border-slate-600">
+                                        <span v-if="sale.service_or_product === 'product'">Товар</span>
+                                        <span v-else-if="sale.service_or_product === 'service'">Услуга</span>
+                                    </td>
+                                    <td class="p-1 border border-slate-600">{{ sale.sport_type }}</td>
+                                    <td class="p-1 border border-slate-600">
+                                        <span v-if="sale.service_type === 'trial'">Пробная</span>
+                                        <span v-else-if="sale.service_type === 'group'">Групповая</span>
+                                        <span v-else-if="sale.service_type === 'minigroup'">Минигруппа</span>
+                                        <span v-else-if="sale.service_type === 'individual'">Индивидуальная</span>
+                                        <span v-else-if="sale.service_type === 'split'">Сплит</span>
+                                    </td>
+                                    <td class="p-1 border border-slate-600">{{ sale.product_type }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.subscription_duration }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.visits_per_week }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.training_count }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.trainer }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.trainer_category }}</td>
+                                    <td class="p-1 border border-slate-600">
+                                        {{
+                                            sale.subscription_start_date ? dayjs(sale.subscription_start_date).format('DD.MM.YY') : ''
+                                        }}
+                                    </td>
+                                    <td class="p-1 border border-slate-600">
+                                        {{
+                                            sale.subscription_end_date ? dayjs(sale.subscription_end_date).format('DD.MM.YY') : ''
+                                        }}
+                                    </td>
+                                    <td class="p-1 border border-slate-600">{{ sale.cost }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.paid_amount }}</td>
+                                    <td class="p-1 border border-slate-600">{{ sale.pay_method }}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

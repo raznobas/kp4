@@ -17,6 +17,7 @@ const props = defineProps(['categories', 'categoryCosts']);
 
 const form = useForm({
     sale_date: new Date().toISOString().split('T')[0],
+    client_object: null,
     client_id: null,
     service_or_product: null,
     sport_type: null,
@@ -25,6 +26,7 @@ const form = useForm({
     visits_per_week: null,
     training_count: null,
     trainer_category: null,
+    trainer: null,
     product_type: null,
     subscription_start_date: null,
     subscription_end_date: null,
@@ -32,6 +34,7 @@ const form = useForm({
     paid_amount: 0,
     pay_method: null,
 });
+
 const updateFormWithNames = () => {
     const findCategoryNameById = (id, type) => {
         const category = props.categories.find(c => c.id === id && c.type === type);
@@ -44,6 +47,7 @@ const updateFormWithNames = () => {
     form.visits_per_week = findCategoryNameById(form.visits_per_week, 'visits_per_week');
     form.training_count = findCategoryNameById(form.training_count, 'training_count');
     form.trainer_category = findCategoryNameById(form.trainer_category, 'trainer_category');
+    form.trainer = findCategoryNameById(form.trainer, 'trainer');
     form.pay_method = findCategoryNameById(form.pay_method, 'pay_method');
 };
 
@@ -59,31 +63,28 @@ const updateCost = () => {
     };
     const categoryIds = Object.keys(categoryFields).map(field => {
         const category = props.categories.find(c => c.id === categoryFields[field]);
-        return category ? { field, id: category.id } : null;
+        return category ? {field, id: category.id} : null;
     }).filter(item => item !== null);
-
-    console.log(categoryIds);
 
     let totalCost = 0;
 
     categoryIds.forEach(item => {
-        const categoryCost = props.categoryCosts.find(cc => cc.main_category_id == item.id);
-        if (categoryCost) {
-            // Проверяем, что дополнительные категории соответствуют основной категории
-            const additionalCategoriesMatch = categoryCost.additional_costs.every(ac => categoryIds.some(ci => ci.id === ac.additional_category_id));
+        const categoryCosts = props.categoryCosts.filter(cc => cc.main_category_id == item.id);
+        if (categoryCosts.length > 0) {
+            // Проверяем, что хотя бы одна из дополнительных категорий соответствует основной категории
+            const matchingCost = categoryCosts.find(cc => {
+                return cc.additional_costs.every(ac => categoryIds.some(ci => ci.id === ac.additional_category_id));
+            });
 
-            if (additionalCategoriesMatch) {
-                // Если все дополнительные категории соответствуют основной, добавляем стоимость основной категории
-                totalCost += parseFloat(categoryCost.cost);
+            if (matchingCost) {
+                // Если найдена соответствующая комбинация, добавляем стоимость основной категории
+                totalCost += parseFloat(matchingCost.cost);
             }
-
-            console.log(categoryCost);
         }
     });
 
     form.cost = totalCost;
 };
-
 watch(() => [
     form.sport_type,
     form.service_type,
@@ -97,8 +98,13 @@ watch(() => [
 
 const submit = () => {
     updateFormWithNames();
+    form.client_id = form.client_object.id;
     form.post(route('sales.store'), {
-        onSuccess: () => form.reset(),
+        onSuccess: () => {
+            form.reset();
+            allSumPaid.value = false;
+            useTodayDate.value = false
+        },
     });
 };
 
@@ -118,10 +124,9 @@ const calculateEndDate = () => {
     if (form.subscription_start_date && form.subscription_duration) {
         const startDate = new Date(form.subscription_start_date);
         let endDate;
-
         const durationName = categoryMap[form.subscription_duration];
-        const trainingCountName = categoryMap[form.training_count];
 
+        // Обработка основных вариантов длительности
         switch (durationName) {
             case '0.03': // значение для разовой
                 endDate = new Date(startDate);
@@ -152,19 +157,15 @@ const calculateEndDate = () => {
                 break;
         }
 
-        // Добавляем условие для "Кол-во тренировок"
-        if (trainingCountName === 'Блок 8 тренировок' || trainingCountName === 'Блок 20 тренировок') {
-            if (endDate) {
-                endDate.setDate(endDate.getDate() + 182);
-            } else {
-                endDate = new Date(startDate);
-                endDate.setDate(startDate.getDate() + 182);
-            }
-        }
-
         if (endDate) {
             form.subscription_end_date = endDate.toISOString().split('T')[0];
         }
+    } else if (form.subscription_start_date && form.training_count && (categoryMap[form.training_count] === 'Блок 8 тренировок' || categoryMap[form.training_count] === 'Блок 20 тренировок')) {
+        // Обработка случая только с "Кол-во тренировок"
+        const startDate = new Date(form.subscription_start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 182);
+        form.subscription_end_date = endDate.toISOString().split('T')[0];
     } else {
         form.subscription_end_date = null;
     }
@@ -182,7 +183,7 @@ const searchResults = ref([]);
 const searchClients = async (query) => {
     if (query.length > 2) {
         try {
-            const url = route('clients.search', { query });
+            const url = route('clients.search', {query});
             const response = await axios.get(url);
             searchResults.value = response.data;
         } catch (error) {
@@ -211,6 +212,7 @@ const selectedClientCard = ref(null);
 // Обновляем данные о клиенте после того как с дочернего компонента пришел emit после обновления данных
 const handleClientUpdated = (updatedClient) => {
     selectedClientCard.value = updatedClient;
+    form.client_object = updatedClient;
 };
 
 const openModal = async (clientId) => {
@@ -228,17 +230,11 @@ const createLead = (formData) => {
     });
     closeModal();
 };
-
 const closeModal = () => {
     showModal.value = false;
     showLeadModal.value = false;
     selectedClientCard.value = null;
 };
-
-// сортировка для передачи в компонент только категорий источников
-const adSourceCategories = computed(() => {
-    return props.categories.filter(category => category.type === 'ad_source');
-});
 
 // галочка, которая устанавливает ту же сумму из поля cost в поле paid_amount
 const allSumPaid = ref(false);
@@ -249,6 +245,12 @@ watch(allSumPaid, (newValue) => {
         form.paid_amount = 0;
     }
 });
+
+// Условия скрытия полей в зависимости от типов
+const isSubscriptionActive = computed(() => form.service_type === 'group' || form.service_type === 'minigroup');
+const isTrainingCountActive = computed(() => form.service_type === 'individual' || form.service_type === 'split');
+const isServiceActive = computed(() => form.service_or_product === 'service');
+const isProductActive = computed(() => form.service_or_product === 'product');
 </script>
 
 <template>
@@ -256,10 +258,11 @@ watch(allSumPaid, (newValue) => {
 
     <AuthenticatedLayout>
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
-            <h3 class="mb-4">Для работы с продажами директору нужно настроить категории во вкладке "Настройка категорий".</h3>
+            <h3 class="mb-4">Для работы с продажами директору нужно настроить категории во вкладке "Настройка
+                категорий".</h3>
             <PrimaryButton type="button" @click="showLeadModal = true;">+ Новый клиент</PrimaryButton>
             <Modal :show="showLeadModal" @close="closeModal">
-                <ClientLeadForm :is-lead="false" :source-options="adSourceCategories" @submit="createLead" />
+                <ClientLeadForm :is-lead="false" @submit="createLead"/>
             </Modal>
             <form @submit.prevent="submit">
                 <div class="flex flex-row flex-wrap gap-2 auto-cols-max items-end mt-2">
@@ -272,13 +275,14 @@ watch(allSumPaid, (newValue) => {
                     </div>
                     <div class="flex flex-col w-56 relative">
                         <label for="fio" class="text-sm font-medium text-gray-700">Имя
-                            <span v-if="form.client_id">
-                                <button type="button" @click="openModal(form.client_id)" class="text-indigo-600 hover:text-indigo-900">(карточка)</button>
+                            <span v-if="form.client_object">
+                                <button type="button" @click="openModal(form.client_object)"
+                                        class="text-indigo-600 hover:text-indigo-900">(карточка)</button>
                             </span>
                         </label>
                         <vue-multiselect
                             id="fio"
-                            v-model="form.client_id"
+                            v-model="form.client_object"
                             :options="searchResults"
                             :searchable="true"
                             :max-height="400"
@@ -295,18 +299,25 @@ watch(allSumPaid, (newValue) => {
                             </template>
                         </vue-multiselect>
                     </div>
+                    <div v-if="form.client_object" class="flex flex-col w-32 cursor-not-allowed">
+                        <label for="phone" class="text-sm font-medium text-gray-700">Телефон</label>
+                        <input disabled :placeholder="form.client_object?.phone ?? 'Отсутствует'"
+                               type="text" class="p-1 border border-gray-300 rounded-md"/>
+                    </div>
                     <div class="flex flex-col">
                         <label for="service_or_product" class="text-sm font-medium text-gray-700">Услуга/Товар</label>
-                        <select id="service_or_product" required v-model="form.service_or_product" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                        <select id="service_or_product" required v-model="form.service_or_product"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
                             <option value="service">Услуга</option>
                             <option value="product">Товар</option>
                         </select>
                         <InputError :message="form.errors.service_or_product" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': form.service_or_product === 'product' }">
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
                         <label for="sport_type" class="text-sm font-medium text-gray-700">Вид спорта</label>
-                        <select id="sport_type" v-model="form.sport_type" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                        <select id="sport_type" v-model="form.sport_type"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
                             <option v-for="category in categories.filter(c => c.type === 'sport_type')"
                                     :value="category.id" :key="category.id">{{ category.name }}
@@ -314,9 +325,11 @@ watch(allSumPaid, (newValue) => {
                         </select>
                         <InputError :message="form.errors.sport_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': form.service_or_product === 'product' }">
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
                         <label for="service_type" class="text-sm font-medium text-gray-700">Вид услуги</label>
-                        <select id="service_type" v-model="form.service_type" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <select id="service_type" v-model="form.service_type"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                                @change="updateServiceType">
                             <option value="trial">Пробная</option>
                             <option value="group">Групповая</option>
                             <option value="minigroup">Минигруппа</option>
@@ -325,67 +338,93 @@ watch(allSumPaid, (newValue) => {
                         </select>
                         <InputError :message="form.errors.service_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': form.service_or_product === 'service' }">
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isProductActive }">
                         <label for="product_types" class="text-sm font-medium text-gray-700">Вид товара</label>
-                        <select id="product_types" v-model="form.product_type" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <select id="product_types" v-model="form.product_type"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option v-for="category in categories.filter(c => c.type === 'product_type')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.product_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': form.service_or_product === 'product' }">
+                    <div class="flex flex-col w-32"
+                         :class="{ 'disabled-field': !isServiceActive || !isSubscriptionActive }">
                         <label for="subscription_duration"
                                class="text-sm font-medium text-gray-700">Длительность абонемента</label>
-                        <select id="subscription_duration" v-model="form.subscription_duration" @change="calculateEndDate"
-                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <select id="subscription_duration" v-model="form.subscription_duration"
+                                @change="calculateEndDate"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                                :disabled="!isSubscriptionActive">
                             <option v-for="category in categories.filter(c => c.type === 'subscription_duration')"
-                                    :value="category.id" :key="category.id">{{ category.name === '0.03' ? 'Разовая' : category.name }}
+                                    :value="category.id" :key="category.id">
+                                {{ category.name === '0.03' ? 'Разовая' : category.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.subscription_duration" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': form.service_or_product === 'product' }">
-                        <label for="visits_per_week" class="text-sm font-medium text-gray-700">Посещений в неделю</label>
-                        <select id="visits_per_week" v-model="form.visits_per_week" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
-                            <option v-for="category in categories.filter(c => c.type === 'subscription_duration')"
+                    <div class="flex flex-col w-32"
+                         :class="{ 'disabled-field': !isServiceActive }">
+                        <label for="visits_per_week" class="text-sm font-medium text-gray-700">Посещений в
+                            неделю</label>
+                        <select id="visits_per_week" v-model="form.visits_per_week"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-for="category in categories.filter(c => c.type === 'visits_per_week')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.visits_per_week" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': form.service_or_product === 'product' }">
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive || !isTrainingCountActive }">
                         <label for="training_count" class="text-sm font-medium text-gray-700">Кол-во тренировок</label>
-                        <select id="training_count" v-model="form.training_count" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <select id="training_count" v-model="form.training_count"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                                :disabled="!isTrainingCountActive">
                             <option v-for="category in categories.filter(c => c.type === 'training_count')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.training_count" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': form.service_or_product === 'product' }">
-                        <label for="trainer_category" class="text-sm font-medium text-gray-700">Категория тренера</label>
-                        <select id="trainer_category" v-model="form.trainer_category" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                        <label for="trainer_category" class="text-sm font-medium text-gray-700">Категория
+                            тренера</label>
+                        <select id="trainer_category" v-model="form.trainer_category"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option v-for="category in categories.filter(c => c.type === 'trainer_category')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.trainer_category" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': form.service_or_product === 'product' }">
-                        <label for="subscription_start_date" class="text-sm font-medium text-gray-700">Начало абонемента</label>
+                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                        <label for="trainer" class="text-sm font-medium text-gray-700">Тренер</label>
+                        <select id="trainer" v-model="form.trainer"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-for="category in categories.filter(c => c.type === 'trainer')"
+                                    :value="category.id" :key="category.id">{{ category.name }}
+                            </option>
+                        </select>
+                        <InputError :message="form.errors.trainer_category" class="mt-2 text-sm text-red-600"/>
+                    </div>
+                    <div class="flex flex-col w-32"
+                         :class="{ 'disabled-field': !isServiceActive }">
+                        <label for="subscription_start_date" class="text-sm font-medium text-gray-700">Начало
+                            абонемента</label>
                         <div class="-mt-1">
-                            <input id="todayCheckbox" class="w-3 h-3 p-0" type="checkbox" v-model="useTodayDate" @change="setTodayDate" />
+                            <input id="todayCheckbox" class="w-3 h-3 p-0" type="checkbox" v-model="useTodayDate"
+                                   @change="setTodayDate"/>
                             <label for="todayCheckbox" class="ml-1 text-xs text-gray-700 cursor-pointer">Сегодня</label>
                         </div>
                         <input id="subscription_start_date" type="date" v-model="form.subscription_start_date"
                                @change="calculateEndDate"
                                class="p-1 border border-gray-300 rounded-md"
                                :disabled="useTodayDate"
-                            />
+                        />
                         <InputError :message="form.errors.subscription_start_date" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': form.service_or_product === 'product' }">
+                    <div class="flex flex-col w-32"
+                         :class="{ 'disabled-field': !isServiceActive }">
                         <label for="subscription_end_date" class="text-sm font-medium text-gray-700">Окончание
                             абонемента</label>
                         <input id="subscription_end_date" type="date" v-model="form.subscription_end_date"
@@ -394,14 +433,14 @@ watch(allSumPaid, (newValue) => {
                     </div>
                     <div class="flex flex-col w-24">
                         <label for="cost" class="text-sm font-medium text-gray-700">Стоимость</label>
-                            <input id="cost" type="number" min="0" step="10" v-model="form.cost"
-                                   class="mt-1 p-1 border border-gray-300 rounded-md"/>
+                        <input id="cost" type="number" min="0" step="10" v-model="form.cost"
+                               class="mt-1 p-1 border border-gray-300 rounded-md" required/>
                         <InputError :message="form.errors.cost" class="mt-2 text-sm text-red-600"/>
                     </div>
                     <div class="flex flex-col w-24">
                         <label for="paid_amount" class="text-sm font-medium text-gray-700">Сумма оплач.</label>
                         <div class="-mt-1">
-                            <input id="allSumPaid" class="w-3 h-3 p-0" type="checkbox" v-model="allSumPaid" />
+                            <input id="allSumPaid" class="w-3 h-3 p-0" type="checkbox" v-model="allSumPaid"/>
                             <label for="allSumPaid" class="ml-1 text-xs text-gray-700 cursor-pointer">Вся сумма</label>
                         </div>
                         <input id="paid_amount" type="number" min="0" step="10" v-model="form.paid_amount"
@@ -410,7 +449,8 @@ watch(allSumPaid, (newValue) => {
                     </div>
                     <div class="flex flex-col w-32">
                         <label for="pay_method" class="text-sm font-medium text-gray-700">Способ оплаты</label>
-                        <select id="pay_method" v-model="form.pay_method" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
+                        <select id="pay_method" v-model="form.pay_method"
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
                             <option v-for="category in categories.filter(c => c.type === 'pay_method')"
                                     :value="category.id" :key="category.id">{{ category.name }}
@@ -421,10 +461,13 @@ watch(allSumPaid, (newValue) => {
                 </div>
                 <div class="mt-4">
                     <PrimaryButton :disabled="form.processing">Добавить продажу</PrimaryButton>
-                    <SecondaryButton class="ml-2" type="button" @click="() => { form.reset(); selectedClient = null }">Очистить</SecondaryButton>
+                    <SecondaryButton class="ml-2" type="button"
+                                     @click="() => { form.reset(); selectedClientCard = null }">Очистить
+                    </SecondaryButton>
                 </div>
             </form>
-            <ClientModal :show="showModal" :client="selectedClientCard" @close="closeModal" @client-updated="handleClientUpdated" />
+            <ClientModal :show="showModal" :client="selectedClientCard" @close="closeModal"
+                         @client-updated="handleClientUpdated"/>
         </div>
     </AuthenticatedLayout>
 </template>

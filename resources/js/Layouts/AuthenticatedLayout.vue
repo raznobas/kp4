@@ -42,11 +42,23 @@ const hasAbility = (ability) => {
                                 <NavLink :href="route('clients.index')" :active="route().current('clients.index')">
                                     Клиенты
                                 </NavLink>
+                                <NavLink :href="route('clients.old')" :active="route().current('clients.old')">
+                                    Старые клиенты
+                                </NavLink>
                                 <NavLink :href="route('leads.index')" :active="route().current('leads.index')">
                                     Лиды
                                 </NavLink>
-                                <NavLink v-if="hasAbility('manage-categories')" :href="route('sales.index')" :active="route().current('sales.index')">
+                                <NavLink :href="route('sales.index')" :active="route().current('sales.index')">
                                     Продажи
+                                </NavLink>
+                                <NavLink :href="route('clients.renewals')" :active="route().current('clients.renewals')">
+                                    Продление
+                                </NavLink>
+                                <NavLink :href="route('clients.trials')" :active="route().current('clients.trials')">
+                                    Пробники
+                                </NavLink>
+                                <NavLink :href="route('tasks.index')" :active="route().current('tasks.index')">
+                                    Задачи
                                 </NavLink>
                                 <NavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')" :active="route().current('categories.index')">
                                     Настройка категорий
@@ -110,9 +122,6 @@ const hasAbility = (ability) => {
                     <div class="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
                             Dashboard
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink :href="route('chirps.index')" :active="route().current('chirps.index')">
-                            Chirps
                         </ResponsiveNavLink>
                     </div>
 

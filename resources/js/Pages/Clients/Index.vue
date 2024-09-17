@@ -2,10 +2,12 @@
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import InputError from "@/Components/InputError.vue";
 import {Head, useForm, usePage} from "@inertiajs/vue3";
+import { Link } from "@inertiajs/vue3";
+
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import {ref} from "vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
-import Modal from "@/Components/Modal.vue";
+import Pagination from "@/Components/Pagination.vue";
 import ClientModal from "@/Components/ClientModal.vue";
 import dayjs from "dayjs";
 
@@ -151,7 +153,7 @@ const closeModal = () => {
                 </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="client in clients" :key="client.id">
+                <tr v-for="client in clients.data" :key="client.id">
                     <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
@@ -162,13 +164,14 @@ const closeModal = () => {
                     <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">
-                        <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Открыть карточку</button>
+                        <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
                     </td>
                 </tr>
                 </tbody>
             </table>
-            <h1>Авто загрузка при прокрутке*</h1>
-            <ClientModal :show="showModal" :client="selectedClient" @close="closeModal" @client-updated="handleClientUpdated" />
+            <Pagination :items="clients" />
+            <ClientModal :show="showModal" :client="selectedClient"
+                         @close="closeModal" @client-updated="handleClientUpdated" />
         </div>
     </AuthenticatedLayout>
 </template>
