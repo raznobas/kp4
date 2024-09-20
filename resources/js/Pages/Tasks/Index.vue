@@ -6,8 +6,9 @@ import {Head, useForm, usePage} from "@inertiajs/vue3";
 import ClientModal from "@/Components/ClientModal.vue";
 import {ref} from "vue";
 import Pagination from "@/Components/Pagination.vue";
+import NoShowLeads from "@/Pages/Tasks/Partials/NoShowLeads.vue";
 
-const props = defineProps(['tasks']);
+const props = defineProps(['tasks', 'noShowLeads']);
 
 const showModal = ref(false);
 const selectedClient = ref(null);
@@ -50,7 +51,7 @@ const closeModal = () => {
                 <tr v-for="task in tasks.data" :key="task.id">
                     <td class="px-3 py-2 whitespace-nowrap">{{ task.id }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">
-                        {{ task.task_date ? dayjs(task.task_date).format('DD.MM.YYYY') : '' }}<br>
+                        {{ task.task_date ? dayjs(task.task_date).format('DD.MM.YYYY') : '' }}
                     </td>
                     <td class="px-3 py-2 whitespace-normal">
                         {{ task.task_description }}
@@ -64,6 +65,7 @@ const closeModal = () => {
             <Pagination :items="tasks" />
             <ClientModal :show="showModal" :client="selectedClient"
                          @close="closeModal" @client-updated="handleClientUpdated" />
+            <NoShowLeads :no-show-leads="noShowLeads"/>
         </div>
     </AuthenticatedLayout>
 </template>

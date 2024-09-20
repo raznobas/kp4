@@ -36,7 +36,7 @@ const closeModal = () => {
 
     <AuthenticatedLayout>
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
-            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов с истекающим абонементом</h3>
+            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов с абонементом истекающим и истекшим в течении 1-го месяца</h3>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                 <tr>
@@ -47,7 +47,7 @@ const closeModal = () => {
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Абонемент</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Истекает</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Истек/(ает)</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
                 </thead>

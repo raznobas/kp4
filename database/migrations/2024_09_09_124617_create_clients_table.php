@@ -26,7 +26,6 @@ return new class extends Migration
             $table->enum('gender', ['male', 'female'])->nullable(); // Пол
             $table->string('ad_source')->nullable(); // Реклама (источник)
             $table->boolean('is_lead'); // Лид или клиент
-            $table->foreignId('director_id')->constrained('users');
             $table->timestamps();
         });
     }

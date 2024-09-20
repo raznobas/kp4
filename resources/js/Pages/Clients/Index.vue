@@ -25,7 +25,7 @@ const form = useForm({
     gender: 'male',
     ad_source: null,
     is_lead: false,
-    director_id: usePage().props.auth.user.id,
+    director_id: usePage().props.auth.director_id,
 });
 
 const props = defineProps(['clients', 'source_options']);

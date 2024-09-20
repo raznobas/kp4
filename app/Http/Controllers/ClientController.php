@@ -5,20 +5,38 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\LeadAppointment;
+use App\Models\Sale;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Silber\Bouncer\Bouncer;
 
 class ClientController extends Controller
 {
+    use AuthorizesRequests;
+
+    protected $bouncer;
+
+    public function __construct(Bouncer $bouncer)
+    {
+        $this->bouncer = $bouncer;
+    }
+
     public function index()
     {
-        $clients = Client::where('director_id', auth()->user()->id)
+        $this->authorize('manage-sales');
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
+        $clients = Client::where('director_id', auth()->user()->director_id)
             ->where('is_lead', false)
             ->orderBy('created_at', 'desc')
             ->select('id', 'surname', 'name', 'patronymic', 'birthdate', 'phone', 'email')
             ->paginate(15);
 
-        $source_options = Category::where('director_id', auth()->user()->id)
+        $source_options = Category::where('director_id', auth()->user()->director_id)
             ->where('type', 'ad_source')
             ->get();
 
@@ -30,6 +48,7 @@ class ClientController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('manage-sales');
         $validated = $request->validate([
             'surname' => 'string|max:255',
             'name' => 'required|string|max:255',
@@ -54,6 +73,7 @@ class ClientController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->authorize('manage-sales');
         $validatedData = $request->validate([
             'surname' => 'string|max:255',
             'name' => 'required|string|max:255',
@@ -75,6 +95,7 @@ class ClientController extends Controller
 
     public function search(Request $request)
     {
+        $this->authorize('manage-sales');
         $query = $request->input('query');
         $isLead = $request->input('is_lead'); // Параметр может быть передан или нет
 
@@ -98,6 +119,7 @@ class ClientController extends Controller
 
     public function show($id)
     {
+        $this->authorize('manage-sales');
         $client = Client::findOrFail($id);
 
         return response()->json($client);
@@ -105,58 +127,56 @@ class ClientController extends Controller
 
     public function renewals()
     {
+        $this->authorize('manage-sales');
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
         $currentDate = now();
 
-        // Получаем клиентов с абонементами от 1 месяца и больше
-        $longTermSubscriptions = Client::where('director_id', auth()->user()->id)
+        // Получаем всех клиентов с абонементами, отсортированными по дате окончания
+        $clients = Client::where('director_id', auth()->user()->director_id)
             ->where('is_lead', false)
             ->whereHas('sales', function ($query) use ($currentDate) {
-                $query->whereIn('service_type', ['group', 'minigroup'])
-                    ->where('subscription_duration', '>=', 1)
-                    ->where('subscription_end_date', '>', $currentDate);
+                $query->whereIn('service_type', ['group', 'minigroup']);
             })
             ->with(['sales' => function ($query) use ($currentDate) {
                 $query->select('client_id', 'subscription_end_date', 'service_type')
-                    ->where('subscription_duration', '>=', 1)
-                    ->where('subscription_end_date', '>', $currentDate);
+                    ->whereIn('service_type', ['group', 'minigroup'])
+                    ->orderBy('subscription_end_date', 'desc')
+                    ->limit(1);
             }])
             ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
             ->get();
 
-        // Получаем клиентов, у которых заканчивается абонемент в течение недели
-        $expiringSubscriptions = Client::where('director_id', auth()->user()->id)
-            ->where('is_lead', false)
-            ->whereHas('sales', function ($query) use ($currentDate) {
-                $query->whereIn('service_type', ['group', 'minigroup'])
-                    ->where('subscription_end_date', '<=', (clone $currentDate)->addDays(7))
-                    ->where('subscription_end_date', '>=', $currentDate);
-            })
-            ->with(['sales' => function ($query) use ($currentDate) {
-                $query->select('client_id', 'subscription_end_date', 'service_type')
-                    ->where('subscription_end_date', '<=', (clone $currentDate)->addDays(7))
-                    ->where('subscription_end_date', '>=', $currentDate);
-            }])
-            ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
-            ->get();
+        // Фильтруем клиентов по условиям
+        $clientsToRenewal = $clients->filter(function ($client) use ($currentDate) {
+            $subscriptionEndDate = $client->sales->first()->subscription_end_date ?? null;
 
-        // Получаем клиентов, у которых абонемент закончился в течение последнего месяца
-        $recentlyExpiredSubscriptions = Client::where('director_id', auth()->user()->id)
-            ->where('is_lead', false)
-            ->whereHas('sales', function ($query) use ($currentDate) {
-                $query->whereIn('service_type', ['group', 'minigroup'])
-                    ->where('subscription_end_date', '>=', (clone $currentDate)->subMonth()->startOfDay())
-                    ->where('subscription_end_date', '<', $currentDate->startOfDay());
-            })
-            ->with(['sales' => function ($query) use ($currentDate) {
-                $query->select('client_id', 'subscription_end_date', 'service_type')
-                    ->where('subscription_end_date', '>=', (clone $currentDate)->subMonth()->startOfDay())
-                    ->where('subscription_end_date', '<', $currentDate->startOfDay());
-            }])
-            ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
-            ->get();
+            if ($subscriptionEndDate === null) {
+                return false;
+            }
 
-        // Объединяем результаты и удаляем дубликаты
-        $clientsToRenewal = $longTermSubscriptions->merge($expiringSubscriptions)->merge($recentlyExpiredSubscriptions)->unique();
+            // Проверяем, есть ли у клиента хотя бы один действующий абонемент
+            $hasActiveSubscription = Sale::where('client_id', $client->id)
+                ->where('subscription_end_date', '>', $currentDate)
+                ->exists();
+            if ($hasActiveSubscription) {
+                return false;
+            }
+
+            // Клиенты, у которых заканчивается абонемент в течение недели
+            if ($subscriptionEndDate <= (clone $currentDate)->addDays(7) && $subscriptionEndDate >= $currentDate) {
+                return true;
+            }
+
+            // Клиенты, у которых абонемент закончился в течение последнего месяца
+            if ($subscriptionEndDate >= (clone $currentDate)->subMonth()->startOfDay() && $subscriptionEndDate < $currentDate->startOfDay()) {
+                return true;
+            }
+
+            return false;
+        });
 
         // Добавляем поля из sales к каждому клиенту
         $clientsToRenewal->each(function ($client) {
@@ -165,15 +185,7 @@ class ClientController extends Controller
         });
 
         // Пагинация на стороне сервера
-        $perPage = 15;
-        $currentPage = request()->input('page', 1);
-        $paginatedClients = new \Illuminate\Pagination\LengthAwarePaginator(
-            $clientsToRenewal->forPage($currentPage, $perPage),
-            $clientsToRenewal->count(),
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+        $paginatedClients = $this->serverPaginate($clientsToRenewal);
 
         return Inertia::render('Clients/Renewals', [
             'clientsToRenewal' => $paginatedClients,
@@ -182,20 +194,50 @@ class ClientController extends Controller
 
     public function old()
     {
+        $this->authorize('manage-sales');
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
         $currentDate = now();
 
-        // Получаем клиентов, у которых абонемент закончился более месяца назад (старые клиенты)
-        $oldClients = Client::where('director_id', auth()->user()->id)
+        // Получаем всех клиентов с абонементами, отсортированными по дате окончания
+        $clients = Client::where('director_id', auth()->user()->director_id)
             ->where('is_lead', false)
             ->whereHas('sales', function ($query) use ($currentDate) {
-                $query->where('subscription_end_date', '<', (clone $currentDate)->subMonth()->startOfDay());
+                $query->whereIn('service_type', ['group', 'minigroup']);
             })
             ->with(['sales' => function ($query) use ($currentDate) {
                 $query->select('client_id', 'subscription_end_date', 'service_type')
-                    ->where('subscription_end_date', '<', (clone $currentDate)->subMonth()->startOfDay());
+                    ->whereIn('service_type', ['group', 'minigroup'])
+                    ->orderBy('subscription_end_date', 'desc')
+                    ->limit(1);
             }])
             ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
             ->get();
+
+        // Фильтруем клиентов по условиям
+        $oldClients = $clients->filter(function ($client) use ($currentDate) {
+            $subscriptionEndDate = $client->sales->first()->subscription_end_date ?? null;
+
+            if ($subscriptionEndDate === null) {
+                return false;
+            }
+            // Проверяем, есть ли у клиента хотя бы один действующий абонемент
+            $hasActiveSubscription = Sale::where('client_id', $client->id)
+                ->where('subscription_end_date', '>', $currentDate)
+                ->exists();
+            if ($hasActiveSubscription) {
+                return false;
+            }
+
+            // Клиенты, у которых абонемент закончился более месяца назад
+            if ($subscriptionEndDate < (clone $currentDate)->subMonth()->startOfDay()) {
+                return true;
+            }
+
+            return false;
+        });
 
         // Добавляем поля из sales к каждому клиенту
         $oldClients->each(function ($client) {
@@ -203,15 +245,7 @@ class ClientController extends Controller
         });
 
         // Пагинация на стороне сервера
-        $perPage = 15;
-        $currentPage = request()->input('page', 1);
-        $paginatedClients = new \Illuminate\Pagination\LengthAwarePaginator(
-            $oldClients->forPage($currentPage, $perPage),
-            $oldClients->count(),
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+        $paginatedClients = $this->serverPaginate($oldClients);
 
         return Inertia::render('Clients/Old', [
             'oldClients' => $paginatedClients,
@@ -220,6 +254,11 @@ class ClientController extends Controller
 
     public function trials()
     {
+        $this->authorize('manage-sales');
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
         $currentDate = now();
         $oneMonthAgo = $currentDate->subMonth();
 
@@ -251,10 +290,28 @@ class ClientController extends Controller
 
     public function getSourceOptions()
     {
-        $source_options = Category::where('director_id', auth()->user()->id)
+        $this->authorize('manage-sales');
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
+        $source_options = Category::where('director_id', auth()->user()->director_id)
             ->where('type', 'ad_source')
             ->get();
 
         return response()->json($source_options);
+    }
+
+    private function serverPaginate($items)
+    {
+        $perPage = 15;
+        $currentPage = request()->input('page', 1);
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->forPage($currentPage, $perPage),
+            $items->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
     }
 }

@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'abilities' => $user ? $user->getAbilities()->pluck('name')->toArray() : [],
+                'director_id' => $user ? $user->director_id : null,
             ],
         ];
     }

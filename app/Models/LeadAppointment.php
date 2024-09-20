@@ -12,6 +12,7 @@ class LeadAppointment extends Model
     protected $fillable = [
         'sale_date',
         'client_id',
+        'director_id',
         'service_or_product',
         'sport_type',
         'service_type',
@@ -20,4 +21,9 @@ class LeadAppointment extends Model
         'training_time',
         'status',
     ];
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

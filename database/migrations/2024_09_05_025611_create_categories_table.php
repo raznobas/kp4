@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('director_id')->constrained('users');
             $table->string('name'); // например, БОКС, пробная
             $table->string('type'); // например, вид спорта, вид услуги
             $table->timestamps();

@@ -13,6 +13,7 @@ class CategoryCost extends Model
     protected $fillable = [
         'main_category_id',
         'cost',
+        'director_id'
     ];
 
     public function additionalCosts()

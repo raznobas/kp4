@@ -18,7 +18,7 @@ const form = useForm({
     gender: "male",
     ad_source: null,
     is_lead: null,
-    director_id: usePage().props.auth.user.id,
+    director_id: usePage().props.auth.director_id,
 });
 
 const emit = defineEmits(['submit']);

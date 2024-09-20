@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\CategoryCost;
 use App\Models\CategoryCostAdditional;
 use App\Models\Client;
+use App\Models\LeadAppointment;
 use App\Models\Sale;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -27,7 +28,11 @@ class SaleController extends Controller
     {
         $this->authorize('manage-sales');
 
-        $categories = Category::where('director_id', auth()->user()->id)->get();
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
+        $categories = Category::where('director_id', auth()->user()->director_id)->get();
 
         // Получаем все настройки стоимости
         $categoryCosts = CategoryCost::with('additionalCosts')->get();
@@ -40,6 +45,8 @@ class SaleController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('manage-sales');
+
         $validated = $request->validate([
             'sale_date' => 'required|date',
             'client_id' => 'required|exists:clients,id',
@@ -67,12 +74,25 @@ class SaleController extends Controller
             $client->save();
         }
 
+        // Если тренировка пробная, то ищем запись в таблице lead_appointments и меняем статус на completed.
+        // Случай, когда Лид пришел на записанную тренировку
+        if ($validated['service_type'] === 'trial') {
+            $leadAppointment = LeadAppointment::where('client_id', $validated['client_id'])->first();
+
+            if ($leadAppointment) {
+                $leadAppointment->status = 'completed';
+                $leadAppointment->save();
+            }
+        }
+
         Sale::create($validated);
 
         return redirect()->back();
     }
     public function show($client_id)
     {
+        $this->authorize('manage-sales');
+
         $clientSales = Sale::where('client_id', $client_id)->get();
 
         return response()->json($clientSales);

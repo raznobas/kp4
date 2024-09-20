@@ -28,7 +28,11 @@ class CategoryController extends Controller
     {
         $this->authorize('manage-categories');
 
-        $categories = Category::where('director_id', auth()->user()->id)->get();
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
+        $categories = Category::where('director_id', auth()->user()->director_id)->get();
         $categoryCosts = CategoryCost::with('additionalCosts')->get();
 
         return Inertia::render('Director/Categories/Index', [
@@ -41,13 +45,17 @@ class CategoryController extends Controller
     {
         $this->authorize('manage-categories');
 
+        if (auth()->user()->director_id === null) {
+            return false;
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
         ]);
 
         Category::create([
-            'director_id' => auth()->user()->id,
+            'director_id' => auth()->user()->director_id,
             'name' => $request->name,
             'type' => $request->type,
         ]);
@@ -97,7 +105,7 @@ class CategoryController extends Controller
     {
         $this->authorize('manage-categories');
 
-        if ($category->director_id !== auth()->user()->id) {
+        if ($category->director_id !== auth()->user()->director_id) {
             return redirect()->route('categories.index')->withErrors(['error' => 'У вас нет прав на удаление этой категории.']);
         }
 
