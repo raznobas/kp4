@@ -1,12 +1,14 @@
 <script setup>
-
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import dayjs from "dayjs";
-import {Head, useForm, usePage} from "@inertiajs/vue3";
+import {Head, useForm} from "@inertiajs/vue3";
 import ClientModal from "@/Components/ClientModal.vue";
 import {ref} from "vue";
 import Pagination from "@/Components/Pagination.vue";
 import NoShowLeads from "@/Pages/Tasks/Partials/NoShowLeads.vue";
+import { useToast } from "@/useToast";
+import axios from "axios";
+const { showToast } = useToast();
 
 const props = defineProps(['tasks', 'noShowLeads']);
 
@@ -18,7 +20,7 @@ const openModal = async (clientId) => {
         selectedClient.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка при получении данных: " + error.message, "error");
     }
 };
 const handleClientUpdated = (updatedClient) => {
@@ -29,6 +31,20 @@ const handleClientUpdated = (updatedClient) => {
 const closeModal = () => {
     showModal.value = false;
     selectedClient.value = null;
+};
+
+const form = useForm({
+
+})
+const deleteTask = (taskId) => {
+    if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
+        try {
+            form.delete(route('tasks.destroy', taskId));
+            showToast("Задача успешно удалена!", "success");
+        } catch (error) {
+            showToast("Ошибка при удалении задачи: " + error.message, "error");
+        }
+    }
 };
 </script>
 
@@ -44,7 +60,8 @@ const closeModal = () => {
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Описание задачи</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отправитель</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -56,13 +73,19 @@ const closeModal = () => {
                     <td class="px-3 py-2 whitespace-normal">
                         {{ task.task_description }}
                     </td>
+                    <td class="px-3 py-2 whitespace-normal">
+                        {{ task.user_sender.name }}
+                    </td>
                     <td class="px-3 py-2 whitespace-nowrap">
                         <button @click="openModal(task.client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
+                        <button @click="deleteTask(task.id)" class="ms-2 px-1" title="Удалить задачу">
+                            <i class="fa fa-trash text-red-600" aria-hidden="true"></i>
+                        </button>
                     </td>
                 </tr>
                 </tbody>
             </table>
-            <Pagination :items="tasks" />
+            <Pagination :items="tasks" page-param="page"/>
             <ClientModal :show="showModal" :client="selectedClient"
                          @close="closeModal" @client-updated="handleClientUpdated" />
             <NoShowLeads :no-show-leads="noShowLeads"/>

@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Silber\Bouncer\Bouncer;
 
@@ -50,7 +50,7 @@ class ClientController extends Controller
     {
         $this->authorize('manage-sales');
         $validated = $request->validate([
-            'surname' => 'string|max:255',
+            'surname' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
             'patronymic' => 'nullable|string|max:255',
             'birthdate' => 'nullable|date',
@@ -63,10 +63,20 @@ class ClientController extends Controller
             'gender' => 'nullable|in:male,female',
             'ad_source' => 'nullable|string|max:255',
             'is_lead' => 'boolean',
-            'director_id' => 'nullable|integer',
+            'director_id' => 'required|exists:users,id',
         ]);
 
-        Client::create($validated);
+        // Создаем клиента и получаем его ID
+        $client = Client::create($validated);
+
+        // Определяем статус в зависимости от значения is_lead
+        $status = $validated['is_lead'] ? 'lead_created' : 'client_created';
+
+        ClientStatus::create([
+            'client_id' => $client->id,
+            'status_to' => $status,
+            'director_id' => $client->director_id,
+        ]);
 
         return redirect()->back();
     }
@@ -75,7 +85,7 @@ class ClientController extends Controller
     {
         $this->authorize('manage-sales');
         $validatedData = $request->validate([
-            'surname' => 'string|max:255',
+            'surname' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
             'patronymic' => 'nullable|string|max:255',
             'birthdate' => 'nullable|date',
@@ -263,8 +273,8 @@ class ClientController extends Controller
         $oneMonthAgo = $currentDate->subMonth();
 
         // Получаем все пробные тренировки, которые были более месяца назад
-        $trials = LeadAppointment::where('training_date', '<', $oneMonthAgo)
-//            ->where('status', '!=', 'completed') а надо ли проверять статус?
+        $trials = Sale::where('sale_date', '<', $oneMonthAgo)
+            ->where('service_type', '=', 'trial')
             ->get();
 
         // Получаем уникальные client_id из этих пробных тренировок
@@ -280,7 +290,7 @@ class ClientController extends Controller
 
         // Получаем training_date для каждого клиента
         $trialClients->each(function ($client) use ($trials) {
-            $client->training_date = $trials->where('client_id', $client->id)->first()->training_date ?? null;
+            $client->training_date = $trials->where('client_id', $client->id)->first()->sale_date ?? null;
         });
 
         return Inertia::render('Clients/Trials', [

@@ -52,6 +52,7 @@ class CategoryController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
+            'director_id' => 'required|exists:users,id',
         ]);
 
         Category::create([
@@ -73,6 +74,7 @@ class CategoryController extends Controller
             'additionalCategories.*.type' => 'required|string',
             'additionalCategories.*.option' => 'required|string',
             'cost' => 'required|numeric',
+            'director_id' => 'required|exists:users,id',
         ]);
 
         // Найти основную категорию
@@ -84,6 +86,7 @@ class CategoryController extends Controller
         $categoryCost = CategoryCost::create([
             'main_category_id' => $mainCategory->id,
             'cost' => $request->input('cost'),
+            'director_id' => auth()->user()->director_id,
         ]);
 
         // Добавить дополнительные категории

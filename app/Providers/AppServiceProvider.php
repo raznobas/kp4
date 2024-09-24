@@ -19,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void // !!!сделать несколько первых пользователей, назначить менеджеров/директоров!!!
+    public function boot(): void
     {
         $bouncer = $this->app->make(Bouncer::class);
 
@@ -45,8 +45,5 @@ class AppServiceProvider extends ServiceProvider
             'manage-leads',
             'manage-tasks'
         ]);
-
-        $user = User::find(1);
-        $bouncer->assign('admin')->to($user);
     }
 }

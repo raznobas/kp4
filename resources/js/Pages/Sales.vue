@@ -1,17 +1,17 @@
 <script setup>
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import InputError from "@/Components/InputError.vue";
-import {Head, useForm} from "@inertiajs/vue3";
+import {Head, useForm, usePage} from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import {computed, ref, watch} from "vue";
-import DangerButton from "@/Components/DangerButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
-import NavLink from "@/Components/NavLink.vue";
 import VueMultiselect from 'vue-multiselect';
 import 'vue-multiselect/dist/vue-multiselect.css';
 import Modal from "@/Components/Modal.vue";
 import ClientModal from "@/Components/ClientModal.vue";
 import ClientLeadForm from "@/Components/ClientLeadForm.vue";
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 const props = defineProps(['categories', 'categoryCosts']);
 
@@ -19,6 +19,7 @@ const form = useForm({
     sale_date: new Date().toISOString().split('T')[0],
     client_object: null,
     client_id: null,
+    director_id: usePage().props.auth.director_id,
     service_or_product: null,
     sport_type: null,
     service_type: null,
@@ -103,7 +104,13 @@ const submit = () => {
         onSuccess: () => {
             form.reset();
             allSumPaid.value = false;
-            useTodayDate.value = false
+            useTodayDate.value = false;
+            showToast("Продажа успешно добавлена!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
         },
     });
 };
@@ -187,7 +194,7 @@ const searchClients = async (query) => {
             const response = await axios.get(url);
             searchResults.value = response.data;
         } catch (error) {
-            console.error('Ошибка при поиске клиентов:', error);
+            showToast("Ошибка поиска: " + error.message, "error");
         }
     } else {
         searchResults.value = [];
@@ -220,13 +227,21 @@ const openModal = async (clientId) => {
         selectedClientCard.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка получения данных: " + error.message, "error");
     }
 };
-const createLead = (formData) => {
+const createClient = (formData) => {
     formData.is_lead = false;
     formData.post(route('clients.store'), {
-        onSuccess: () => formData.reset(),
+        onSuccess: () => {
+            formData.reset();
+            showToast("Клиент успешно добавлен!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
+        },
     });
     closeModal();
 };
@@ -262,7 +277,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                 категорий".</h3>
             <PrimaryButton type="button" @click="showLeadModal = true;">+ Новый клиент</PrimaryButton>
             <Modal :show="showLeadModal" @close="closeModal">
-                <ClientLeadForm :is-lead="false" @submit="createLead"/>
+                <ClientLeadForm :is-lead="false" @submit="createClient"/>
             </Modal>
             <form @submit.prevent="submit">
                 <div class="flex flex-row flex-wrap gap-2 auto-cols-max items-end mt-2">

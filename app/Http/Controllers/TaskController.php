@@ -19,7 +19,7 @@ class TaskController extends Controller
     {
         $this->bouncer = $bouncer;
     }
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('manage-tasks');
 
@@ -27,14 +27,19 @@ class TaskController extends Controller
             return false;
         }
 
-        $tasks = Task::with(['client:id,surname,name,birthdate,phone,email'])
+        $tasksPage = $request->input('page', 1);
+        $noShowLeadsPage = $request->input('page_no_show_leads', 1);
+
+        $tasks = Task::with(['client:id,surname,name,birthdate,phone,email', 'userSender:id,name'])
+            ->where('director_id', auth()->user()->director_id)
             ->orderBy('task_date')
-            ->paginate(15);
+            ->paginate(15, ['*'], 'page', $tasksPage);
 
         $noShowLeads = LeadAppointment::with(['client:id,surname,name,birthdate,phone,email'])
+            ->where('director_id', auth()->user()->director_id)
             ->where('status', 'no_show')
             ->orderBy('training_date')
-            ->paginate(15);
+            ->paginate(15, ['*'], 'page_no_show_leads', $noShowLeadsPage);
 
         return Inertia::render('Tasks/Index', [
             'tasks' => $tasks,
@@ -48,6 +53,7 @@ class TaskController extends Controller
 
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
+            'director_id' => 'required|exists:users,id',
             'user_sender_id' => 'required|exists:users,id',
             'task_date' => 'required|date',
             'task_description' => 'required|string',
@@ -62,10 +68,24 @@ class TaskController extends Controller
     {
         $this->authorize('manage-tasks');
 
-        $tasks = Task::where('client_id', $client_id)
+        $tasks = Task::with('userSender:id,name')
+            ->where('client_id', $client_id)
+            ->where('director_id', auth()->user()->director_id)
             ->orderBy('task_date', 'asc')
             ->get();
 
         return response()->json($tasks);
+    }
+
+    public function destroy(Task $task)
+    {
+        $this->authorize('manage-tasks');
+
+        if ($task->director_id !== auth()->user()->director_id) {
+            return redirect()->back()->withErrors(['error' => 'У вас нет прав на удаление этой задачи.']);
+        }
+        $task->delete();
+
+        return redirect()->back();
     }
 }

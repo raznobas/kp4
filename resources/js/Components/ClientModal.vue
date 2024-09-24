@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import {useForm, usePage} from "@inertiajs/vue3";
 import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 const props = defineProps({
     show: Boolean,
@@ -30,6 +32,7 @@ const formEdit = useForm({
 });
 const formTask = useForm({
     client_id: null,
+    director_id: usePage().props.auth.director_id,
     user_sender_id: usePage().props.auth.user.id,
     task_description: null,
     task_date: null,
@@ -52,7 +55,7 @@ const loadClientSales = async (clientId) => {
         calculateTotalSales();
         sortClientSalesByDate();
     } catch (error) {
-        console.error('Ошибка при загрузке данных о продажах:', error);
+        showToast("Ошибка получения покупок клиента: " + error.message, "error");
     }
 };
 
@@ -89,22 +92,30 @@ const submit = () => {
         onSuccess: () => {
             formTask.reset();
             isEditing.value = false;
-            fetchTasks(props.client.id)
+            fetchTasks(props.client.id);
+            showToast("Задача успешно добавлена!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
         },
     });
 };
 const isEditing = ref(false);
 const sourceOptions = ref(null);
 const editClient = async () => {
-    isEditing.value = !isEditing.value;
-    const responseSourceOptions = await axios.get(route('clients.getSourceOptions'));
-    sourceOptions.value = responseSourceOptions.data;
+    try {
+        isEditing.value = !isEditing.value;
+        const responseSourceOptions = await axios.get(route('clients.getSourceOptions'));
+        sourceOptions.value = responseSourceOptions.data;
+    } catch (error) {
+        showToast("Ошибка при получении опций источников: " + error.message, "error");
+    }
 };
 
 const submitEdit = () => {
     if (!props.client || !props.client.id) {
-        console.error('Client data is missing or incomplete');
-        console.log(props.client)
         return;
     }
 
@@ -112,6 +123,12 @@ const submitEdit = () => {
         onSuccess: () => {
             isEditing.value = false;
             emit('client-updated', formEdit.data());
+            showToast("Данные успешно обновлены!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
         },
     });
 };
@@ -128,7 +145,7 @@ const fetchTasks = async (clientId) => {
         const response = await axios.get(route('tasks.show', clientId));
         tasks.value = response.data;
     } catch (error) {
-        console.error('Ошибка при получении задач:', error);
+        showToast("Ошибка получения задач клиента: " + error.message, "error");
     }
 };
 </script>
@@ -288,6 +305,7 @@ const fetchTasks = async (clientId) => {
                                 <thead>
                                 <tr>
                                     <th class="p-1 border border-slate-600 text-left w-16">Дата</th>
+                                    <th class="p-1 border border-slate-600 text-left w-16">Отправитель</th>
                                     <th class="p-1 border border-slate-600 text-left">Описание</th>
                                 </tr>
                                 </thead>
@@ -295,6 +313,9 @@ const fetchTasks = async (clientId) => {
                                 <tr v-for="task in tasks" :key="task.id" class="border-b">
                                     <td class="p-1 border border-slate-600 w-16">
                                         {{ task.task_date ? dayjs(task.task_date).format('DD.MM.YY') : '' }}
+                                    </td>
+                                    <td class="p-1 border border-slate-600">
+                                        {{ task.user_sender.name }}
                                     </td>
                                     <td class="p-1 border border-slate-600">
                                         {{ task.task_description }}

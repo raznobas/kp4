@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\CategoryCost;
 use App\Models\CategoryCostAdditional;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -50,6 +51,7 @@ class SaleController extends Controller
         $validated = $request->validate([
             'sale_date' => 'required|date',
             'client_id' => 'required|exists:clients,id',
+            'director_id' => 'required|exists:users,id',
             'service_or_product' => 'required|in:service,product',
             'sport_type' => 'nullable|exists:categories,name',
             'service_type' => 'nullable|in:trial,group,minigroup,individual,split',
@@ -75,17 +77,29 @@ class SaleController extends Controller
         }
 
         // Если тренировка пробная, то ищем запись в таблице lead_appointments и меняем статус на completed.
-        // Случай, когда Лид пришел на записанную тренировку
+        // Это случай, когда Лид пришел на записанную тренировку
         if ($validated['service_type'] === 'trial') {
             $leadAppointment = LeadAppointment::where('client_id', $validated['client_id'])->first();
 
             if ($leadAppointment) {
                 $leadAppointment->status = 'completed';
                 $leadAppointment->save();
+
+                ClientStatus::create([
+                    'client_id' => $leadAppointment->client_id,
+                    'status_to' => 'appointment_completed',
+                    'director_id' => $leadAppointment->director_id,
+                ]);
             }
         }
 
         Sale::create($validated);
+
+        ClientStatus::create([
+            'client_id' => $client->id,
+            'status_to' => 'purchase_created',
+            'director_id' => $client->director_id,
+        ]);
 
         return redirect()->back();
     }

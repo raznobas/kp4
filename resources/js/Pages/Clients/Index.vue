@@ -2,14 +2,14 @@
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import InputError from "@/Components/InputError.vue";
 import {Head, useForm, usePage} from "@inertiajs/vue3";
-import { Link } from "@inertiajs/vue3";
-
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import {ref} from "vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
 import Pagination from "@/Components/Pagination.vue";
 import ClientModal from "@/Components/ClientModal.vue";
 import dayjs from "dayjs";
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 const form = useForm({
     surname: null,
@@ -32,7 +32,15 @@ const props = defineProps(['clients', 'source_options']);
 
 const submit = () => {
     form.post(route('clients.store'), {
-        onSuccess: () => form.reset(),
+        onSuccess: () => {
+            form.reset();
+            showToast("Клиент успешно добавлен!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
+        },
     });
 };
 const handleClientUpdated = (updatedClient) => {
@@ -47,7 +55,7 @@ const openModal = async (clientId) => {
         selectedClient.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка получения данных: " + error.message, "error");
     }
 };
 
@@ -127,7 +135,7 @@ const closeModal = () => {
                         <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
                         <select id="ad_source" v-model="form.ad_source" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option v-for="source in source_options.filter(c => c.type === 'ad_source')"
-                                    :value="source.id" :key="source.id">{{ source.name }}
+                                    :value="source.name" :key="source.id">{{ source.name }}
                             </option>
                         </select>
                         <InputError :message="form.errors.ad_source" class="mt-2 text-sm text-red-600"/>

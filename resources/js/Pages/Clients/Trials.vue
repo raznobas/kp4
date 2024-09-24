@@ -1,11 +1,12 @@
 <script setup>
-
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import dayjs from "dayjs";
 import {Head, useForm, usePage} from "@inertiajs/vue3";
 import ClientModal from "@/Components/ClientModal.vue";
 import {ref} from "vue";
 import Pagination from "@/Components/Pagination.vue";
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 const props = defineProps(['trialClients']);
 
@@ -17,7 +18,7 @@ const openModal = async (clientId) => {
         selectedClient.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка получения данных: " + error.message, "error");
     }
 };
 const handleClientUpdated = (updatedClient) => {
@@ -36,7 +37,7 @@ const closeModal = () => {
 
     <AuthenticatedLayout>
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
-            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов, не оформивших абонемент, спустя более месяца после пробной тренировки</h3>
+            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов, не оформивших абонемент, спустя более 1-го месяца после пробной тренировки</h3>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                 <tr>

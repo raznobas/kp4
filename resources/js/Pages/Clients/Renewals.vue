@@ -6,6 +6,8 @@ import {Head, useForm, usePage} from "@inertiajs/vue3";
 import ClientModal from "@/Components/ClientModal.vue";
 import {ref} from "vue";
 import Pagination from "@/Components/Pagination.vue";
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 const props = defineProps(['clientsToRenewal']);
 
@@ -17,7 +19,7 @@ const openModal = async (clientId) => {
         selectedClient.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка получения данных: " + error.message, "error");
     }
 };
 const handleClientUpdated = (updatedClient) => {

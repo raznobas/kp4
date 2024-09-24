@@ -4,6 +4,8 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import 'dayjs/locale/ru';
+import { useToast } from "@/useToast";
+const { showToast } = useToast();
 
 dayjs.extend(relativeTime);
 
@@ -22,7 +24,7 @@ const openModal = async (clientId) => {
         selectedClient.value = (await axios.get(route('clients.show', clientId))).data;
         showModal.value = true;
     } catch (error) {
-        console.error('Ошибка при получении данных клиента:', error);
+        showToast("Ошибка получения данных: " + error.message, "error");
     }
 };
 const handleClientUpdated = (updatedClient) => {

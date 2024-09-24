@@ -21,4 +21,9 @@ class Task extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    public function userSender()
+    {
+        return $this->belongsTo(User::class, 'user_sender_id');
+    }
 }

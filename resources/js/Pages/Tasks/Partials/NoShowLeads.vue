@@ -60,7 +60,7 @@ const closeModal = () => {
         </tr>
         </tbody>
     </table>
-    <Pagination :items="noShowLeads" />
+    <Pagination :items="noShowLeads" page-param="page_no_show_leads"/>
     <ClientModal :show="showModal" :client="selectedClient"
                  @close="closeModal" @client-updated="handleClientUpdated" />
 </template>
