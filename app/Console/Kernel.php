@@ -9,6 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         Commands\UpdateLeadAppointmentsStatus::class,
+        Commands\ImportSalesFromXlsx::class,
     ];
 
     protected function schedule(Schedule $schedule)

@@ -130,7 +130,28 @@ class ClientController extends Controller
     public function show($id)
     {
         $this->authorize('manage-sales');
+
         $client = Client::findOrFail($id);
+
+        // Проверяем, что клиент до этого был лидом
+        $leadCreatedExists = ClientStatus::where('client_id', $client->id)
+            ->where('status_to', 'lead_created')
+            ->exists();
+
+        if ($leadCreatedExists) {
+            // Проверяем поле purchase_created для получения даты перехода из лида в клиенты (дата первой покупки)
+            $clientHistory = ClientStatus::where('client_id', $client->id)
+                ->where('status_to', 'purchase_created')
+                ->first();
+
+            if ($clientHistory) {
+                $client->purchase_created_at = $clientHistory->created_at;
+            } else {
+                $client->purchase_created_at = null;
+            }
+        } else {
+            $client->purchase_created_at = null;
+        }
 
         return response()->json($client);
     }

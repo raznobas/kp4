@@ -6,8 +6,9 @@ import dayjs from "dayjs";
 import {useForm, usePage} from "@inertiajs/vue3";
 import InputError from "@/Components/InputError.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
-import { useToast } from "@/useToast";
-const { showToast } = useToast();
+import {useToast} from "@/useToast";
+
+const {showToast} = useToast();
 
 const props = defineProps({
     show: Boolean,
@@ -60,7 +61,7 @@ const loadClientSales = async (clientId) => {
 };
 
 const firstSaleDate = computed(() => {
-    return clientSales.value.length > 0 ? dayjs(clientSales.value[0].sale_date).format('DD.MM.YYYY') : '-';
+    return clientSales.value.length > 0 ? dayjs(clientSales.value[0].sale_date).format('DD.MM.YYYY') : '–';
 });
 
 // Вычисляемое свойство для общей суммы продаж
@@ -184,7 +185,12 @@ const fetchTasks = async (clientId) => {
                             <p class="text-sm text-gray-500">
                                 <strong>Дата первого обращения в клуб:</strong>
                                 {{ client.created_at ? dayjs(client.created_at).format('DD.MM.YYYY') : '' }}<br>
-                                <strong>Дата первого посещения:</strong> {{ firstSaleDate }}
+                                <span v-if="client.is_lead === 0">
+                                    <strong>Дата первого посещения:</strong> {{ firstSaleDate }}<br>
+                                    <strong>Дата перехода из лида в клиента:</strong> {{
+                                        client.purchase_created_at ? dayjs(client.purchase_created_at).format('DD.MM.YYYY') : '–'
+                                    }}
+                                </span>
                             </p>
                         </div>
                         <form v-else @submit.prevent="submitEdit">

@@ -448,7 +448,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                     </div>
                     <div class="flex flex-col w-24">
                         <label for="cost" class="text-sm font-medium text-gray-700">Стоимость</label>
-                        <input id="cost" type="number" min="0" step="10" v-model="form.cost"
+                        <input id="cost" type="number" min="0" step="1" v-model="form.cost"
                                class="mt-1 p-1 border border-gray-300 rounded-md" required/>
                         <InputError :message="form.errors.cost" class="mt-2 text-sm text-red-600"/>
                     </div>
@@ -458,7 +458,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             <input id="allSumPaid" class="w-3 h-3 p-0" type="checkbox" v-model="allSumPaid"/>
                             <label for="allSumPaid" class="ml-1 text-xs text-gray-700 cursor-pointer">Вся сумма</label>
                         </div>
-                        <input id="paid_amount" type="number" min="0" step="10" v-model="form.paid_amount"
+                        <input id="paid_amount" type="number" min="0" step="1" v-model="form.paid_amount"
                                class="p-1 border border-gray-300 rounded-md"/>
                         <InputError :message="form.errors.paid_amount" class="mt-2 text-sm text-red-600"/>
                     </div>

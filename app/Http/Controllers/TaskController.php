@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\LeadAppointment;
+use App\Models\Sale;
 use App\Models\Task;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -41,9 +43,37 @@ class TaskController extends Controller
             ->orderBy('training_date')
             ->paginate(15, ['*'], 'page_no_show_leads', $noShowLeadsPage);
 
+        // Получение пробников в течении последнего месяца, без активного абонемента
+        $currentDate = now();
+        $oneMonthAgo = $currentDate->subMonth();
+
+        $trialsLessThanMonthPage = $request->input('trials', 1);
+
+        // Получаем все пробные тренировки, которые были менее месяца назад
+        $trialsLessThanMonth = Sale::where('sale_date', '>=', $oneMonthAgo)
+            ->where('service_type', '=', 'trial')
+            ->get();
+
+        // Получаем уникальные client_id из этих пробных тренировок
+        $clientIdsLessThanMonth = $trialsLessThanMonth->pluck('client_id')->unique();
+
+        // Получаем клиентов, у которых нет активного абонемента
+        $trialClientsLessThanMonth = Client::whereIn('id', $clientIdsLessThanMonth)
+            ->whereDoesntHave('sales', function ($query) use ($currentDate) {
+                $query->where('subscription_end_date', '>', $currentDate);
+            })
+            ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
+            ->paginate(15, ['*'], 'trials', $trialsLessThanMonthPage);
+
+        // Получаем training_date для каждого клиента
+        $trialClientsLessThanMonth->each(function ($client) use ($trialsLessThanMonth) {
+            $client->training_date = $trialsLessThanMonth->where('client_id', $client->id)->first()->sale_date ?? null;
+        });
+
         return Inertia::render('Tasks/Index', [
             'tasks' => $tasks,
             'noShowLeads' => $noShowLeads,
+            'trialLessThanMonth' => $trialClientsLessThanMonth,
         ]);
     }
 

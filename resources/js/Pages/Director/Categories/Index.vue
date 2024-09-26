@@ -196,7 +196,7 @@ const getCategoryName = (categoryId) => {
                         <!-- Ввод стоимости -->
                         <div class="mb-4 mt-3">
                             <label for="cost" class="block text-sm font-medium text-gray-700">Стоимость</label>
-                            <input v-model="form_costs.cost" type="number" min="0" step="10" id="cost"
+                            <input v-model="form_costs.cost" type="number" min="0" step="1" id="cost"
                                    class="mt-1 p-0.5 w-1/2" required/> &#8381;
                             <InputError :message="form_costs.errors.cost" class="mt-2"/>
                         </div>

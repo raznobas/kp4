@@ -8,9 +8,10 @@ import Pagination from "@/Components/Pagination.vue";
 import NoShowLeads from "@/Pages/Tasks/Partials/NoShowLeads.vue";
 import { useToast } from "@/useToast";
 import axios from "axios";
+import TrialsLessThanMonth from "@/Pages/Tasks/Partials/TrialsLessThanMonth.vue";
 const { showToast } = useToast();
 
-const props = defineProps(['tasks', 'noShowLeads']);
+const props = defineProps(['tasks', 'noShowLeads', 'trialLessThanMonth']);
 
 const showModal = ref(false);
 const selectedClient = ref(null);
@@ -89,6 +90,7 @@ const deleteTask = (taskId) => {
             <ClientModal :show="showModal" :client="selectedClient"
                          @close="closeModal" @client-updated="handleClientUpdated" />
             <NoShowLeads :no-show-leads="noShowLeads"/>
+            <TrialsLessThanMonth :trials="trialLessThanMonth"/>
         </div>
     </AuthenticatedLayout>
 </template>

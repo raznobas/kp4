@@ -14,7 +14,7 @@ import {Link} from '@inertiajs/vue3';
 
 const props = defineProps({
     items: Object,
-    pageParam: String, // параметр для имени параметра запроса (нужно для того, чтобы не было конфликтов, когда на странице две таблицы)
+    pageParam: String, // параметр для имени параметра запроса (нужно для того, чтобы не было конфликтов, когда на странице две пагинации)
 });
 
 const getLocalizedLabel = (label) => {
