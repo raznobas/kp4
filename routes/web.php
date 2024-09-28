@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CollaborationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
@@ -21,7 +22,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 Route::get('/register', function () {
-    return redirect()->route('login');
+    return Inertia::render('Auth/Register');
 });
 
 Route::get('/dashboard', function () {
@@ -32,7 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
-
 
 Route::resource('categories', CategoryController::class)
     ->only(['index', 'store', 'update', 'destroy', 'destroyCost'])
@@ -64,6 +64,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 'destroy' => 'clients.destroy', 'show' => 'clients.show',
             ])
             ->parameters(['' => 'client']);
+    });
+
+    Route::prefix('collaboration')->group(function () {
+        Route::get('/send-request', function () {
+            return Inertia::render('Collaboration/SendRequest');
+        })->name('collaboration.send-request');
+
+        Route::get('/get-current-request/{id}', [CollaborationController::class, 'getCurrentRequest'])
+            ->name('collaboration.getCurrentRequest');
+
+        Route::get('/all-requests', [CollaborationController::class, 'index'])
+            ->name('collaboration.all-requests');
+
+        Route::post('/approve-request/{requestId}', [CollaborationController::class, 'approveRequest'])
+            ->name('collaboration.approve-request');
+        Route::post('/reject-request/{requestId}', [CollaborationController::class, 'rejectRequest'])
+            ->name('collaboration.reject-request');
+        Route::post('/delete-manager/{managerId}', [CollaborationController::class, 'deleteManager'])
+            ->name('collaboration.delete-manager');
+
+        Route::post('/send-request', [CollaborationController::class, 'sendRequest'])
+            ->name('collaboration.send-request');
+
+        Route::post('/delete-request/{id}', [CollaborationController::class, 'deleteRequest'])
+            ->name('collaboration.delete-request');
     });
 });
 
