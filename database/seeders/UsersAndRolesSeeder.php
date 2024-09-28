@@ -21,7 +21,6 @@ class UsersAndRolesSeeder extends Seeder
         Bouncer::ability()->firstOrCreate(['name' => 'manage-categories', 'title' => 'Настройка категорий']);
         Bouncer::ability()->firstOrCreate(['name' => 'manage-sales', 'title' => 'Управление продажами']);
         Bouncer::ability()->firstOrCreate(['name' => 'manage-leads', 'title' => 'Управление лидами']);
-        Bouncer::ability()->firstOrCreate(['name' => 'manage-tasks', 'title' => 'Управление задачами']);
 
         // Назначение разрешений ролям
         Bouncer::allow('admin')->everything();
@@ -29,12 +28,10 @@ class UsersAndRolesSeeder extends Seeder
             'manage-categories',
             'manage-sales',
             'manage-leads',
-            'manage-tasks'
         ]);
         Bouncer::allow('manager')->to([
             'manage-sales',
             'manage-leads',
-            'manage-tasks'
         ]);
 
         // Создание администратора

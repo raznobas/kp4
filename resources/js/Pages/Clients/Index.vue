@@ -134,6 +134,9 @@ const closeModal = () => {
                     <div class="flex flex-col">
                         <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
                         <select id="ad_source" v-model="form.ad_source" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-if="source_options.filter(c => c.type === 'ad_source').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="source in source_options.filter(c => c.type === 'ad_source')"
                                     :value="source.name" :key="source.id">{{ source.name }}
                             </option>
@@ -147,37 +150,42 @@ const closeModal = () => {
                 </div>
             </form>
             <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список клиентов вашей организации</h3>
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отчество</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата рождения</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="client in clients.data" :key="client.id">
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.patronymic }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">
-                        {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
-                    </td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">
-                        <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <Pagination :items="clients" />
+            <div v-if="clients.data && clients.data.length > 0">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отчество</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата рождения</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="client in clients.data" :key="client.id">
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.patronymic }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <Pagination :items="clients" />
+            </div>
+            <div v-else class="text-gray-500">
+                Ничего не найдено
+            </div>
             <ClientModal :show="showModal" :client="selectedClient"
                          @close="closeModal" @client-updated="handleClientUpdated" />
         </div>

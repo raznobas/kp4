@@ -6,7 +6,6 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaleController;
-use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -93,10 +92,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::resource('leads', LeadController::class)
-    ->only(['index', 'store', 'update', 'destroy', 'show'])
-    ->middleware(['auth', 'verified']);
-
-Route::resource('tasks', TaskController::class)
     ->only(['index', 'store', 'update', 'destroy', 'show'])
     ->middleware(['auth', 'verified']);
 

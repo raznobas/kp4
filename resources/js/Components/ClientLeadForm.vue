@@ -107,6 +107,9 @@ onMounted(() => {
                 <div class="flex flex-col">
                     <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
                     <select id="ad_source" v-model="form.ad_source" class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                        <option v-if="sourceOptions && sourceOptions.length === 0" value="" disabled>
+                            Ничего нет
+                        </option>
                         <option v-for="source in sourceOptions"
                                 :value="source.name" :key="source.id">{{ source.name }}
                         </option>

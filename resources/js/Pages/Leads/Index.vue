@@ -12,10 +12,12 @@ import Modal from "@/Components/Modal.vue";
 import ClientLeadForm from "@/Components/ClientLeadForm.vue";
 import dayjs from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+
 dayjs.extend(customParseFormat);
 import Pagination from "@/Components/Pagination.vue";
-import { useToast } from "@/useToast";
-const { showToast } = useToast();
+import {useToast} from "@/useToast";
+
+const {showToast} = useToast();
 
 const props = defineProps(['categories', 'leads', 'leadAppointments']);
 
@@ -49,18 +51,22 @@ const submit = () => {
 
 // поиск клиента
 const searchResults = ref([]);
-
+const isLoading = ref(false);
 const searchClients = async (query, isLead = true) => {
-    if (query.length > 2) {
+    if (query.length > 1) {
+        isLoading.value = true;
         try {
             const url = route('clients.search', {query, is_lead: isLead});
             const response = await axios.get(url);
             searchResults.value = response.data;
         } catch (error) {
             showToast("Ошибка поиска: " + error.message, "error");
+        } finally {
+            isLoading.value = false;
         }
     } else {
         searchResults.value = [];
+        isLoading.value = false;
     }
 };
 const fullName = (option) => {
@@ -148,11 +154,18 @@ const createLead = (formData) => {
                                          :show-labels="false"
                                          :custom-label="fullName"
                                          :internal-search="false"
+                                         :loading="isLoading"
                                          track-by="id"
                                          @search-change="searchClients"
                         >
                             <template v-slot:option="props">
                                 {{ props.option.surname }} {{ props.option.name }} {{ props.option.patronymic }}
+                            </template>
+                            <template v-slot:noOptions>
+                                <span class="text-gray-500">Введите имя</span>
+                            </template>
+                            <template v-slot:noResult>
+                                <span class="text-gray-500">Ничего не найдено</span>
                             </template>
                         </vue-multiselect>
                     </div>
@@ -171,6 +184,9 @@ const createLead = (formData) => {
                         <select id="sport_type" v-model="form.sport_type"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
+                            <option v-if="categories.filter(c => c.type === 'sport_type').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'sport_type')"
                                     :value="category.name" :key="category.id">{{ category.name }}
                             </option>
@@ -193,6 +209,9 @@ const createLead = (formData) => {
                         <select id="trainer" v-model="form.trainer"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
+                            <option v-if="categories.filter(c => c.type === 'trainer').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'trainer')"
                                     :value="category.name" :key="category.id">{{ category.name }}
                             </option>
@@ -210,7 +229,7 @@ const createLead = (formData) => {
                                class="mt-1 p-1 border border-gray-300 rounded-md"
                                :disabled="!form.hasAppointment" required
                         />
-                        <InputError class="mt-2" :message="form.errors.training_date" />
+                        <InputError class="mt-2" :message="form.errors.training_date"/>
                     </div>
                     <div class="flex flex-col w-32" :class="{ 'disabled-field': !form.hasAppointment }">
                         <label for="training_time" class="text-sm font-medium text-gray-700">Время записи</label>
@@ -230,102 +249,117 @@ const createLead = (formData) => {
                          @close="closeModal" @client-updated="handleClientUpdated"/>
             <div>
                 <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Записи на пробную тренировку</h3>
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
-                            спорта
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
-                            услуги
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Тренер
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Дата/время тренировки
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Действия
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="appointment in leadAppointments.data" :key="appointment.id">
-                        <td class="px-3 py-2 whitespace-nowrap">{{ appointment.id }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ appointment.sport_type }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <span v-if="appointment.service_type === 'group'">Групповая</span>
-                            <span v-else-if="appointment.service_type === 'minigroup'">Минигруппа</span>
-                            <span v-else-if="appointment.service_type === 'individual'">Индивидуальная</span>
-                            <span v-else-if="appointment.service_type === 'split'">Сплит</span>
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ appointment.trainer }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ appointment.training_date ? dayjs(appointment.training_date).format('DD.MM.YYYY') : '' }}
-                            <span v-if="appointment.training_time">/
+                <div v-if="leadAppointments.data && leadAppointments.data.length > 0">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
+                                спорта
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
+                                услуги
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Тренер
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Дата/время тренировки
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Действия
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="appointment in leadAppointments.data" :key="appointment.id">
+                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.id }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.sport_type }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <span v-if="appointment.service_type === 'group'">Групповая</span>
+                                <span v-else-if="appointment.service_type === 'minigroup'">Минигруппа</span>
+                                <span v-else-if="appointment.service_type === 'individual'">Индивидуальная</span>
+                                <span v-else-if="appointment.service_type === 'split'">Сплит</span>
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.trainer }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ appointment.training_date ? dayjs(appointment.training_date).format('DD.MM.YYYY') : '' }}
+                                <span v-if="appointment.training_time">/
                               {{ dayjs(appointment.training_time, "HH:mm:ss").format('HH:mm') }}
                             </span>
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <button @click="openModal(appointment.client_id)"
-                                    class="text-indigo-600 hover:text-indigo-900">Карточка
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <Pagination :items="leadAppointments" page-param="page_appointments"/>
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <button @click="openModal(appointment.client_id)"
+                                        class="text-indigo-600 hover:text-indigo-900">Карточка
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <Pagination :items="leadAppointments" page-param="page_appointments"/>
+                </div>
+                <div v-else class="text-gray-500">
+                    Ничего не найдено
+                </div>
             </div>
             <div>
                 <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список лидов вашей организации</h3>
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Фамилия
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Отчество
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата
-                            рождения
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Телефон
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Действия
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="lead in leads.data" :key="lead.id">
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.id }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.surname }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.name }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.patronymic }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ lead.birthdate ? dayjs(lead.birthdate).format('DD.MM.YYYY') : '' }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.phone }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ lead.email }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <button @click="openModal(lead.id)" class="text-indigo-600 hover:text-indigo-900">Карточка
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <Pagination :items="leads" page-param="page"/>
+                <div v-if="leads.data && leads.data.length > 0">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ID
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Фамилия
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Имя
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Отчество
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Дата
+                                рождения
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Телефон
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Почта
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Действия
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="lead in leads.data" :key="lead.id">
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.id }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.surname }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.name }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.patronymic }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ lead.birthdate ? dayjs(lead.birthdate).format('DD.MM.YYYY') : '' }}
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.phone }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.email }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <button @click="openModal(lead.id)" class="text-indigo-600 hover:text-indigo-900">
+                                    Карточка
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <Pagination :items="leads" page-param="page"/>
+                </div>
+                <div v-else class="text-gray-500">
+                    Ничего не найдено
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>

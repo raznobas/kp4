@@ -59,9 +59,6 @@ const hasAbility = (ability) => {
                                 <NavLink :href="route('clients.trials')" :active="route().current('clients.trials')">
                                     Пробники
                                 </NavLink>
-                                <NavLink :href="route('tasks.index')" :active="route().current('tasks.index')">
-                                    Задачи
-                                </NavLink>
                                 <NavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')"
                                          :active="route().current('categories.index')">
                                     Настройка категорий

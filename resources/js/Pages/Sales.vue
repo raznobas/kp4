@@ -186,18 +186,22 @@ watch(() => [
 
 // поиск покупателя/лида
 const searchResults = ref([]);
-
+const isLoading = ref(false);
 const searchClients = async (query) => {
-    if (query.length > 2) {
+    if (query.length > 1) {
+        isLoading.value = true;
         try {
             const url = route('clients.search', {query});
             const response = await axios.get(url);
             searchResults.value = response.data;
         } catch (error) {
             showToast("Ошибка поиска: " + error.message, "error");
+        } finally {
+            isLoading.value = false;
         }
     } else {
         searchResults.value = [];
+        isLoading.value = false;
     }
 };
 
@@ -306,11 +310,18 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             :show-labels="false"
                             :custom-label="fullName"
                             :internal-search="false"
+                            :loading="isLoading"
                             track-by="id"
                             @search-change="searchClients"
                         >
                             <template v-slot:option="props">
                                 {{ fullName(props.option) }}
+                            </template>
+                            <template v-slot:noOptions>
+                                <span class="text-gray-500">Введите имя</span>
+                            </template>
+                            <template v-slot:noResult>
+                                <span class="text-gray-500">Ничего не найдено</span>
                             </template>
                         </vue-multiselect>
                     </div>
@@ -334,6 +345,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <select id="sport_type" v-model="form.sport_type"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
+                            <option v-if="categories.filter(c => c.type === 'sport_type').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'sport_type')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -357,6 +371,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <label for="product_types" class="text-sm font-medium text-gray-700">Вид товара</label>
                         <select id="product_types" v-model="form.product_type"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-if="categories.filter(c => c.type === 'product_type').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'product_type')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -371,6 +388,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                                 @change="calculateEndDate"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                                 :disabled="!isSubscriptionActive">
+                            <option v-if="categories.filter(c => c.type === 'subscription_duration').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'subscription_duration')"
                                     :value="category.id" :key="category.id">
                                 {{ category.name === '0.03' ? 'Разовая' : category.name }}
@@ -384,6 +404,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             неделю</label>
                         <select id="visits_per_week" v-model="form.visits_per_week"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-if="categories.filter(c => c.type === 'visits_per_week').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'visits_per_week')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -395,6 +418,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <select id="training_count" v-model="form.training_count"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                                 :disabled="!isTrainingCountActive">
+                            <option v-if="categories.filter(c => c.type === 'training_count').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'training_count')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -406,6 +432,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             тренера</label>
                         <select id="trainer_category" v-model="form.trainer_category"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-if="categories.filter(c => c.type === 'trainer_category').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'trainer_category')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -416,6 +445,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <label for="trainer" class="text-sm font-medium text-gray-700">Тренер</label>
                         <select id="trainer" v-model="form.trainer"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                            <option v-if="categories.filter(c => c.type === 'trainer').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'trainer')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
@@ -467,6 +499,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <select id="pay_method" v-model="form.pay_method"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
                         >
+                            <option v-if="categories.filter(c => c.type === 'pay_method').length === 0" value="" disabled>
+                                Ничего нет
+                            </option>
                             <option v-for="category in categories.filter(c => c.type === 'pay_method')"
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>

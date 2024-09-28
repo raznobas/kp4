@@ -17,9 +17,6 @@ return new class extends Migration
         Schema::table('clients', function (Blueprint $table) {
             $table->unsignedBigInteger('director_id')->nullable()->after('id');
         });
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->unsignedBigInteger('director_id')->nullable()->after('client_id');
-        });
         Schema::table('lead_appointments', function (Blueprint $table) {
             $table->unsignedBigInteger('director_id')->nullable()->after('client_id');
         });
@@ -38,9 +35,6 @@ return new class extends Migration
             $table->foreign('director_id')->references('id')->on('users')->onDelete('set null');
         });
         Schema::table('clients', function (Blueprint $table) {
-            $table->foreign('director_id')->references('id')->on('users')->onDelete('set null');
-        });
-        Schema::table('tasks', function (Blueprint $table) {
             $table->foreign('director_id')->references('id')->on('users')->onDelete('set null');
         });
         Schema::table('lead_appointments', function (Blueprint $table) {
@@ -75,10 +69,6 @@ return new class extends Migration
             $table->dropColumn('director_id');
         });
         Schema::table('lead_appointments', function (Blueprint $table) {
-            $table->dropForeign(['director_id']);
-            $table->dropColumn('director_id');
-        });
-        Schema::table('tasks', function (Blueprint $table) {
             $table->dropForeign(['director_id']);
             $table->dropColumn('director_id');
         });

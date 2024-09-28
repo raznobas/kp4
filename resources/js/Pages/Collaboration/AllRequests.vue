@@ -69,50 +69,52 @@ const deleteManager = (managerId) => {
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <table v-if="allRequests.data && allRequests.data.length > 0" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email менеджера</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата подачи заявки</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="request in allRequests.data" :key="request.id">
-                            <td class="px-3 py-2 whitespace-nowrap">{{ request.id }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ request.manager_email }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
+                    <div v-if="allRequests.data && allRequests.data.length > 0">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email менеджера</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата подачи заявки</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="request in allRequests.data" :key="request.id">
+                                <td class="px-3 py-2 whitespace-nowrap">{{ request.id }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ request.manager_email }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
                                 <span v-if="request.status === 'pending'">
                                     В ожидании
                                 </span>
-                                <span v-else-if="request.status === 'approved'">
+                                    <span v-else-if="request.status === 'approved'">
                                     Одобрено
                                 </span>
-                                <span v-else-if="request.status === 'rejected'">
+                                    <span v-else-if="request.status === 'rejected'">
                                     Отклонено
                                 </span>
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                {{ request.created_at ? dayjs(request.created_at).format('DD.MM.YYYY') : '' }}
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ request.created_at ? dayjs(request.created_at).format('DD.MM.YYYY') : '' }}
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
                                 <span v-if="request.status === 'pending'">
                                     <button @click="approveRequest(request.id)" class="text-green-600">Одобрить</button>
                                     <button @click="rejectRequest(request.id)" class="text-red-600 ml-3">Отклонить</button>
                                 </span>
-                                <span v-else-if="request.status === 'approved'">
+                                    <span v-else-if="request.status === 'approved'">
                                     <button @click="deleteManager(request.manager_id)" class="text-red-600 ml-3">Удалить</button>
                                 </span>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                    <div v-else class="text-center text-gray-500">
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <Pagination :items="allRequests"/>
+                    </div>
+                    <div v-else class="text-gray-500">
                         Ничего не найдено
                     </div>
-                    <Pagination :items="allRequests"/>
                 </div>
             </div>
         </div>

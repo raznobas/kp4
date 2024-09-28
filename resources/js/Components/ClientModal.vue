@@ -31,18 +31,10 @@ const formEdit = useForm({
     gender: props?.client?.gender,
     ad_source: props?.client?.ad_source,
 });
-const formTask = useForm({
-    client_id: null,
-    director_id: usePage().props.auth.director_id,
-    user_sender_id: usePage().props.auth.user.id,
-    task_description: null,
-    task_date: null,
-});
 watch(() => props.client, newClient => {
     if (newClient) {
         Object.assign(formEdit, JSON.parse(JSON.stringify(newClient)));
         loadClientSales(newClient.id);
-        fetchTasks(newClient.id);
     }
 }, {deep: true});
 
@@ -87,22 +79,6 @@ const sortClientSalesByDate = () => {
     });
 };
 
-const submit = () => {
-    formTask.client_id = props.client.id;
-    formTask.post(route('tasks.store'), {
-        onSuccess: () => {
-            formTask.reset();
-            isEditing.value = false;
-            fetchTasks(props.client.id);
-            showToast("Задача успешно добавлена!", "success");
-        },
-        onError: (errors) => {
-            Object.values(errors).forEach(error => {
-                showToast(error, "error");
-            });
-        },
-    });
-};
 const isEditing = ref(false);
 const sourceOptions = ref(null);
 const editClient = async () => {
@@ -139,16 +115,6 @@ const closeModal = () => {
     isEditing.value = false;
 };
 
-// запрос на получение всех задач текущего клиента
-const tasks = ref([]);
-const fetchTasks = async (clientId) => {
-    try {
-        const response = await axios.get(route('tasks.show', clientId));
-        tasks.value = response.data;
-    } catch (error) {
-        showToast("Ошибка получения задач клиента: " + error.message, "error");
-    }
-};
 </script>
 
 <template>
@@ -271,6 +237,9 @@ const fetchTasks = async (clientId) => {
                                     <label for="ad_source" class="text-sm font-medium text-gray-700">Источник</label>
                                     <select id="ad_source" v-model="formEdit.ad_source"
                                             class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
+                                        <option v-if="sourceOptions && sourceOptions.length === 0" value="" disabled>
+                                            Ничего нет
+                                        </option>
                                         <option v-for="source in sourceOptions"
                                                 :value="source.name" :key="source.id">{{ source.name }}
                                         </option>
@@ -284,52 +253,6 @@ const fetchTasks = async (clientId) => {
                                 </SecondaryButton>
                             </div>
                         </form>
-                    </div>
-                    <form @submit.prevent="submit">
-                        <div class="mt-2 flex">
-                            <h3 class="text-md font-medium mr-2">Задача на дату</h3>
-                            <div class="flex w-32">
-                                <input type="date"
-                                       v-model="formTask.task_date"
-                                       class="p-0 pl-1 border border-gray-300 rounded-md" required
-                                />
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <textarea rows="3"
-                                      v-model="formTask.task_description"
-                                      class="w-full p-1 border border-gray-300 rounded-md text-sm"
-                                      placeholder="Введите задачу по лиду/клиенту" required>
-                            </textarea>
-                        </div>
-                        <secondary-button size="small" type="submit">Отправить задачу</secondary-button>
-                    </form>
-                    <div v-if="tasks.length > 0" class="mt-2">
-                        <h4 class="text-md font-medium text-gray-700 mt-2">Все задачи на текущего клиента</h4>
-                        <div class="overflow-x-auto mt-1">
-                            <table class="w-full text-xs border-collapse border border-slate-600">
-                                <thead>
-                                <tr>
-                                    <th class="p-1 border border-slate-600 text-left w-16">Дата</th>
-                                    <th class="p-1 border border-slate-600 text-left w-16">Отправитель</th>
-                                    <th class="p-1 border border-slate-600 text-left">Описание</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr v-for="task in tasks" :key="task.id" class="border-b">
-                                    <td class="p-1 border border-slate-600 w-16">
-                                        {{ task.task_date ? dayjs(task.task_date).format('DD.MM.YY') : '' }}
-                                    </td>
-                                    <td class="p-1 border border-slate-600">
-                                        {{ task.user_sender.name }}
-                                    </td>
-                                    <td class="p-1 border border-slate-600">
-                                        {{ task.task_description }}
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                     <div v-if="clientSales.length > 0" class="mt-2">
                         <h4 class="text-md font-medium text-gray-700 mt-2">Все продажи на сумму:

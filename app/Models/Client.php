@@ -35,11 +35,6 @@ class Client extends Model
         return $this->hasMany(LeadAppointment::class);
     }
 
-    public function tasks()
-    {
-        return $this->hasMany(Task::class);
-    }
-
     public function director()
     {
         return $this->belongsTo(User::class, 'director_id');
