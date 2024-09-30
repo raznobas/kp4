@@ -106,6 +106,7 @@ const createLead = (formData) => {
         onSuccess: () => {
             form.reset();
             showToast("Лид успешно добавлен!", "success");
+            closeModal();
         },
         onError: (errors) => {
             Object.values(errors).forEach(error => {
@@ -113,7 +114,6 @@ const createLead = (formData) => {
             });
         },
     });
-    closeModal();
 };
 
 

@@ -14,10 +14,12 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Silber\Bouncer\Bouncer;
+use App\Traits\TranslatableAttributes;
 
 class SaleController extends Controller
 {
     use AuthorizesRequests;
+    use TranslatableAttributes;
 
     protected $bouncer;
 
@@ -51,6 +53,8 @@ class SaleController extends Controller
 
         $today = now()->toDateString();
 
+        $attributes = $this->getTranslatableAttributes();
+
         $validated = $request->validate([
             'sale_date' => 'required|date',
             'client_id' => 'required|exists:clients,id',
@@ -77,7 +81,7 @@ class SaleController extends Controller
             'cost' => 'required|numeric|min:0',
             'paid_amount' => 'nullable|numeric|min:0',
             'pay_method' => 'nullable|exists:categories,name',
-        ]);
+        ], [], $attributes);
 
         $client = Client::find($validated['client_id']);
 

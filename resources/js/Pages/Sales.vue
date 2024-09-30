@@ -240,6 +240,7 @@ const createClient = (formData) => {
         onSuccess: () => {
             formData.reset();
             showToast("Клиент успешно добавлен!", "success");
+            closeModal();
         },
         onError: (errors) => {
             Object.values(errors).forEach(error => {
@@ -247,7 +248,6 @@ const createClient = (formData) => {
             });
         },
     });
-    closeModal();
 };
 const closeModal = () => {
     showModal.value = false;

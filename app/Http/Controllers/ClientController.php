@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
+use App\Traits\TranslatableAttributes;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ use Silber\Bouncer\Bouncer;
 class ClientController extends Controller
 {
     use AuthorizesRequests;
+    use TranslatableAttributes;
 
     protected $bouncer;
 
@@ -49,6 +51,8 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $this->authorize('manage-sales');
+
+        $attributes = $this->getTranslatableAttributes();
         $validated = $request->validate([
             'surname' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
@@ -64,7 +68,7 @@ class ClientController extends Controller
             'ad_source' => 'nullable|string|max:255',
             'is_lead' => 'boolean',
             'director_id' => 'required|exists:users,id',
-        ]);
+        ], [], $attributes);
 
         // Создаем клиента и получаем его ID
         $client = Client::create($validated);

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    // sale data
     'sale_date' => 'дата продажи',
     'client_id' => 'ID клиента',
     'director_id' => 'ID директора',
@@ -18,4 +19,17 @@ return [
     'cost' => 'стоимость',
     'paid_amount' => 'оплаченная сумма',
     'pay_method' => 'способ оплаты',
+
+    // client data
+    'surname' => 'фамилия',
+    'name' => 'имя',
+    'patronymic' => 'отчество',
+    'birthdate' => 'дата рождения',
+    'workplace' => 'место работы',
+    'phone' => 'телефон',
+    'telegram' => 'телеграм',
+    'instagram' => 'инстаграм',
+    'address' => 'адрес',
+    'gender' => 'пол',
+    'ad_source' => 'источник рекламы',
 ];
