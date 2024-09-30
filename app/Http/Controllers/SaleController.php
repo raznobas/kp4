@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
+use DateTime;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -48,6 +49,8 @@ class SaleController extends Controller
     {
         $this->authorize('manage-sales');
 
+        $today = now()->toDateString();
+
         $validated = $request->validate([
             'sale_date' => 'required|date',
             'client_id' => 'required|exists:clients,id',
@@ -61,14 +64,31 @@ class SaleController extends Controller
             'training_count' => 'nullable|exists:categories,name',
             'trainer_category' => 'nullable|exists:categories,name',
             'trainer' => 'nullable|exists:categories,name',
-            'subscription_start_date' => 'nullable|date',
-            'subscription_end_date' => 'nullable|date',
+            'subscription_start_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:' . $today,
+            ],
+            'subscription_end_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:' . $today,
+            ],
             'cost' => 'required|numeric|min:0',
             'paid_amount' => 'nullable|numeric|min:0',
             'pay_method' => 'nullable|exists:categories,name',
         ]);
 
         $client = Client::find($validated['client_id']);
+
+        // DateTime для корректного сравнения
+        $startDate = new DateTime($validated['subscription_start_date']);
+        $endDate = new DateTime($validated['subscription_end_date']);
+
+        // Дата окончания не должна быть раньше даты начала
+        if ($endDate < $startDate) {
+            return redirect()->back()->withErrors(['error' => 'Дата окончания не должна быть раньше даты начала']);
+        }
 
         // Если покупку сделал лид, тогда меняем статус аккаунта на клиента.
         if ($client->is_lead) {

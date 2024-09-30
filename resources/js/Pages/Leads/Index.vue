@@ -250,53 +250,55 @@ const createLead = (formData) => {
             <div>
                 <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Записи на пробную тренировку</h3>
                 <div v-if="leadAppointments.data && leadAppointments.data.length > 0">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
-                                спорта
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
-                                услуги
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Тренер
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Дата/время тренировки
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Действия
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="appointment in leadAppointments.data" :key="appointment.id">
-                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.id }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.sport_type }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <span v-if="appointment.service_type === 'group'">Групповая</span>
-                                <span v-else-if="appointment.service_type === 'minigroup'">Минигруппа</span>
-                                <span v-else-if="appointment.service_type === 'individual'">Индивидуальная</span>
-                                <span v-else-if="appointment.service_type === 'split'">Сплит</span>
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ appointment.trainer }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                {{ appointment.training_date ? dayjs(appointment.training_date).format('DD.MM.YYYY') : '' }}
-                                <span v-if="appointment.training_time">/
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
+                                    спорта
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
+                                    услуги
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Тренер
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Дата/время тренировки
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Действия
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="appointment in leadAppointments.data" :key="appointment.id">
+                                <td class="px-3 py-2 whitespace-nowrap">{{ appointment.id }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ appointment.sport_type }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <span v-if="appointment.service_type === 'group'">Групповая</span>
+                                    <span v-else-if="appointment.service_type === 'minigroup'">Минигруппа</span>
+                                    <span v-else-if="appointment.service_type === 'individual'">Индивидуальная</span>
+                                    <span v-else-if="appointment.service_type === 'split'">Сплит</span>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ appointment.trainer }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ appointment.training_date ? dayjs(appointment.training_date).format('DD.MM.YYYY') : '' }}
+                                    <span v-if="appointment.training_time">/
                               {{ dayjs(appointment.training_time, "HH:mm:ss").format('HH:mm') }}
                             </span>
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <button @click="openModal(appointment.client_id)"
-                                        class="text-indigo-600 hover:text-indigo-900">Карточка
-                                </button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <button @click="openModal(appointment.client_id)"
+                                            class="text-indigo-600 hover:text-indigo-900">Карточка
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <Pagination :items="leadAppointments" page-param="page_appointments"/>
                 </div>
                 <div v-else class="text-gray-500">
@@ -306,55 +308,57 @@ const createLead = (formData) => {
             <div>
                 <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список лидов вашей организации</h3>
                 <div v-if="leads.data && leads.data.length > 0">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Фамилия
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Имя
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Отчество
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Дата
-                                рождения
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Телефон
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Почта
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Действия
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="lead in leads.data" :key="lead.id">
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.id }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.surname }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.name }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.patronymic }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                {{ lead.birthdate ? dayjs(lead.birthdate).format('DD.MM.YYYY') : '' }}
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.phone }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ lead.email }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <button @click="openModal(lead.id)" class="text-indigo-600 hover:text-indigo-900">
-                                    Карточка
-                                </button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ID
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Фамилия
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Имя
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Отчество
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Дата
+                                    рождения
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Телефон
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Почта
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Действия
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="lead in leads.data" :key="lead.id">
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.id }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.surname }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.name }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.patronymic }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ lead.birthdate ? dayjs(lead.birthdate).format('DD.MM.YYYY') : '' }}
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.phone }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ lead.email }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <button @click="openModal(lead.id)" class="text-indigo-600 hover:text-indigo-900">
+                                        Карточка
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <Pagination :items="leads" page-param="page"/>
                 </div>
                 <div v-else class="text-gray-500">

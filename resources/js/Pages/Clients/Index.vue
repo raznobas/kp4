@@ -151,36 +151,38 @@ const closeModal = () => {
             </form>
             <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список клиентов вашей организации</h3>
             <div v-if="clients.data && clients.data.length > 0">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отчество</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата рождения</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="client in clients.data" :key="client.id">
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.patronymic }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Отчество</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата рождения</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="client in clients.data" :key="client.id">
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.patronymic }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <Pagination :items="clients" />
             </div>
             <div v-else class="text-gray-500">

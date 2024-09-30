@@ -36,7 +36,7 @@ const hasAbility = (ability) => {
 
                             <!-- Navigation Links -->
                             <div v-if="$page.props.auth.director_id"
-                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                                 class="hidden space-x-8 sm:-my-px sm:ms-10 lg:flex">
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Панель
                                 </NavLink>
@@ -56,17 +56,13 @@ const hasAbility = (ability) => {
                                          :active="route().current('clients.renewals')">
                                     Продление
                                 </NavLink>
-                                <NavLink :href="route('clients.trials')" :active="route().current('clients.trials')">
-                                    Пробники
-                                </NavLink>
                                 <NavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')"
                                          :active="route().current('categories.index')">
                                     Настройка категорий
                                 </NavLink>
                             </div>
                         </div>
-
-                        <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <div class="hidden lg:flex sm:items-center sm:ms-6">
                             <!-- Settings Dropdown -->
                             <div class="ms-3 relative">
                                 <Dropdown align="right" width="48">
@@ -103,7 +99,7 @@ const hasAbility = (ability) => {
                         </div>
 
                         <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <div class="-me-2 flex items-center lg:hidden">
                             <button @click="showingNavigationDropdown = !showingNavigationDropdown"
                                     class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -125,10 +121,30 @@ const hasAbility = (ability) => {
 
                 <!-- Responsive Navigation Menu -->
                 <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
-                     class="sm:hidden">
+                     class="lg:hidden">
                     <div class="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                            Dashboard
+                            Панель
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('clients.index')" :active="route().current('clients.index')">
+                            Клиенты
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('clients.old')" :active="route().current('clients.old')">
+                            Старые клиенты
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('leads.index')" :active="route().current('leads.index')">
+                            Лиды
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('sales.index')" :active="route().current('sales.index')">
+                            Продажи
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('clients.renewals')"
+                                 :active="route().current('clients.renewals')">
+                            Продление
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink v-if="hasAbility('manage-categories')" :href="route('categories.index')"
+                                 :active="route().current('categories.index')">
+                            Настройка категорий
                         </ResponsiveNavLink>
                     </div>
 
@@ -142,9 +158,15 @@ const hasAbility = (ability) => {
                         </div>
 
                         <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')"> Profile</ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('profile.edit')"> Профиль</ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                v-if="$page.props.auth.role !== 'admin'"
+                                :href="$page.props.auth.role === 'manager'
+                                            ? route('collaboration.send-request') : route('collaboration.all-requests') "
+                            > Заявки в команду
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('logout')" method="post" as="button">
-                                Log Out
+                                Выйти
                             </ResponsiveNavLink>
                         </div>
                     </div>

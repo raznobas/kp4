@@ -283,42 +283,6 @@ class ClientController extends Controller
         ]);
     }
 
-    public function trials()
-    {
-        $this->authorize('manage-sales');
-        if (auth()->user()->director_id === null) {
-            return false;
-        }
-
-        $currentDate = now();
-        $oneMonthAgo = $currentDate->subMonth();
-
-        // Получаем все пробные тренировки, которые были более месяца назад
-        $trials = Sale::where('sale_date', '<', $oneMonthAgo)
-            ->where('service_type', '=', 'trial')
-            ->get();
-
-        // Получаем уникальные client_id из этих пробных тренировок
-        $clientIds = $trials->pluck('client_id')->unique();
-
-        // Получаем клиентов, у которых нет активного абонемента
-        $trialClients = Client::whereIn('id', $clientIds)
-            ->whereDoesntHave('sales', function ($query) use ($currentDate) {
-                $query->where('subscription_end_date', '>', $currentDate);
-            })
-            ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
-            ->paginate(15);
-
-        // Получаем training_date для каждого клиента
-        $trialClients->each(function ($client) use ($trials) {
-            $client->training_date = $trials->where('client_id', $client->id)->first()->sale_date ?? null;
-        });
-
-        return Inertia::render('Clients/Trials', [
-            'trialClients' => $trialClients,
-        ]);
-    }
-
     public function getSourceOptions()
     {
         $this->authorize('manage-sales');
