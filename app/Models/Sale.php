@@ -28,4 +28,9 @@ class Sale extends Model
         'paid_amount',
         'pay_method',
     ];
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
+    }
 }
