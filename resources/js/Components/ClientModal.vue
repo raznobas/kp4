@@ -91,6 +91,24 @@ const editClient = async () => {
     }
 };
 
+const deleteClient = async () => {
+    if (!props.client || !props.client.id) {
+        return;
+    }
+    if (confirm('Вы уверены, что хотите удалить этого клиента/лида?')) {
+        formEdit.delete(route('clients.destroy', {id: props.client.id}), {
+            onSuccess: () => {
+                showToast("Клиент/лид успешно удален!", "success");
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach(error => {
+                    showToast(error, "error");
+                });
+            },
+        });
+    }
+};
+
 const submitEdit = () => {
     if (!props.client || !props.client.id) {
         return;
@@ -127,7 +145,12 @@ const closeModal = () => {
                         <span v-else>Информация о клиенте</span>
                         <span class="ml-1">
                             <button title="Редактировать" type="button" @click="editClient" class="mt-1">
-                                <i class="fa fa-pencil-square-o text-xl" aria-hidden="true"></i>
+                                <i class="fa fa-pencil-square-o text-xl text-blue-700" aria-hidden="true"></i>
+                            </button>
+                        </span>
+                        <span v-if="$page.props.auth.role !== 'manager'" class="ml-3">
+                            <button title="Удалить" type="button" @click="deleteClient" class="mt-1">
+                                <i class="fa fa-trash text-xl text-red-700" aria-hidden="true"></i>
                             </button>
                         </span>
                     </h3>
@@ -149,13 +172,11 @@ const closeModal = () => {
                                 <strong>Источник:</strong> {{ client.ad_source }}
                             </p>
                             <p class="text-sm text-gray-500">
-                                <strong>Дата первого обращения в клуб:</strong>
+                                <strong v-if="client.is_lead === 0">Дата создания клиента:</strong>
+                                <strong v-else>Дата создания лида:</strong>
                                 {{ client.created_at ? dayjs(client.created_at).format('DD.MM.YYYY') : '' }}<br>
                                 <span v-if="client.is_lead === 0">
                                     <strong>Дата первого посещения:</strong> {{ firstSaleDate }}<br>
-                                    <strong>Дата перехода из лида в клиента:</strong> {{
-                                        client.purchase_created_at ? dayjs(client.purchase_created_at).format('DD.MM.YYYY') : '–'
-                                    }}
                                 </span>
                             </p>
                         </div>

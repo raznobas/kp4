@@ -20,7 +20,16 @@ import NavLink from "@/Components/NavLink.vue";
                         подайте заявку на прикрепление к вашему директору на
                         <NavLink :href="route('collaboration.send-request')">специальной странице</NavLink>
                     </div>
-                    <div v-else class="p-6 text-gray-900">Вы вошли!</div>
+                    <div v-else class="p-6 text-gray-900">
+                        <div v-if="$page.props.auth.role === 'admin'">
+                            <h3 class="text-lg font-semibold">Добро пожаловать в административную панель CRM системы!</h3>
+                        </div>
+                        <div v-else>
+                            <h3 class="text-lg font-semibold mb-4">Добро пожаловать в CRM систему вашего боксерского клуба!</h3>
+                            <p class="mb-4">Здесь вы можете управлять своими клиентами, лидами, продажами и другими важными данными.  <br>
+                                Для этого воспользуйтесь меню навигации</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

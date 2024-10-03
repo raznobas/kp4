@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\CategoryCost;
 use App\Models\CategoryCostAdditional;
 use App\Models\Client;
-use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
 use DateTime;
@@ -61,7 +60,11 @@ class SaleController extends Controller
         $attributes = $this->getTranslatableAttributes();
 
         $validated = $request->validate([
-            'sale_date' => 'required|date',
+            'sale_date' => [
+                'required',
+                'date',
+                'after_or_equal:' . $today,
+            ],
             'client_id' => 'required|exists:clients,id',
             'director_id' => 'required|exists:users,id',
             'service_or_product' => 'required|in:service,product',
@@ -83,8 +86,8 @@ class SaleController extends Controller
                 'date',
                 'after_or_equal:' . $today,
             ],
-            'cost' => 'required|numeric|min:0',
-            'paid_amount' => 'nullable|numeric|min:0',
+            'cost' => 'required|numeric|min:1',
+            'paid_amount' => 'nullable|numeric|min:1',
             'pay_method' => 'nullable|exists:categories,name',
         ], [], $attributes);
 
@@ -113,22 +116,10 @@ class SaleController extends Controller
             if ($leadAppointment) {
                 $leadAppointment->status = 'completed';
                 $leadAppointment->save();
-
-                ClientStatus::create([
-                    'client_id' => $leadAppointment->client_id,
-                    'status_to' => 'appointment_completed',
-                    'director_id' => $leadAppointment->director_id,
-                ]);
             }
         }
 
         Sale::create($validated);
-
-        ClientStatus::create([
-            'client_id' => $client->id,
-            'status_to' => 'purchase_created',
-            'director_id' => $client->director_id,
-        ]);
 
         return redirect()->back();
     }

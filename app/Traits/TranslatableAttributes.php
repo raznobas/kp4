@@ -34,6 +34,7 @@ trait TranslatableAttributes
             'address' => __('attributes.address'),
             'gender' => __('attributes.gender'),
             'ad_source' => __('attributes.ad_source'),
+            'training_date' => __('attributes.training_date')
         ];
     }
 }

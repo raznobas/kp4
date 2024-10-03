@@ -32,4 +32,5 @@ return [
     'address' => 'адрес',
     'gender' => 'пол',
     'ad_source' => 'источник рекламы',
+    'training_date' => 'дата записи'
 ];

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Client;
-use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
 use App\Traits\TranslatableAttributes;
@@ -70,17 +69,7 @@ class ClientController extends Controller
             'director_id' => 'required|exists:users,id',
         ], [], $attributes);
 
-        // Создаем клиента и получаем его ID
-        $client = Client::create($validated);
-
-        // Определяем статус в зависимости от значения is_lead
-        $status = $validated['is_lead'] ? 'lead_created' : 'client_created';
-
-        ClientStatus::create([
-            'client_id' => $client->id,
-            'status_to' => $status,
-            'director_id' => $client->director_id,
-        ]);
+        Client::create($validated);
 
         return redirect()->back();
     }
@@ -105,6 +94,25 @@ class ClientController extends Controller
 
         $client = Client::findOrFail($id);
         $client->update($validatedData);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        // Проверка роли пользователя
+        $user = $request->user();
+        if (!$user->isAn('admin') && !$user->isA('director')) {
+            return redirect()->back()->withErrors(['error' => 'У вас нет прав на удаление клиентов или лидов.']);
+        }
+
+        $client = Client::where('director_id', auth()->user()->director_id)->where('id', $id)->first();
+
+        if (!$client) {
+            return response()->json(['message' => 'Клиент не найден'], 404);
+        }
+
+        $client->delete();
+
+        return redirect()->back()->with('success', 'Клиент/лид успешно удален.');
     }
 
     public function search(Request $request)
@@ -136,26 +144,6 @@ class ClientController extends Controller
         $this->authorize('manage-sales');
 
         $client = Client::findOrFail($id);
-
-        // Проверяем, что клиент до этого был лидом
-        $leadCreatedExists = ClientStatus::where('client_id', $client->id)
-            ->where('status_to', 'lead_created')
-            ->exists();
-
-        if ($leadCreatedExists) {
-            // Проверяем поле purchase_created для получения даты перехода из лида в клиенты (дата первой покупки)
-            $clientHistory = ClientStatus::where('client_id', $client->id)
-                ->where('status_to', 'purchase_created')
-                ->first();
-
-            if ($clientHistory) {
-                $client->purchase_created_at = $clientHistory->created_at;
-            } else {
-                $client->purchase_created_at = null;
-            }
-        } else {
-            $client->purchase_created_at = null;
-        }
 
         return response()->json($client);
     }

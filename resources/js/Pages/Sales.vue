@@ -12,6 +12,7 @@ import ClientModal from "@/Components/ClientModal.vue";
 import ClientLeadForm from "@/Components/ClientLeadForm.vue";
 import { useToast } from "@/useToast";
 import Pagination from "@/Components/Pagination.vue";
+import dayjs from "dayjs";
 const { showToast } = useToast();
 
 const props = defineProps(['categories', 'categoryCosts', 'sales']);
@@ -32,8 +33,8 @@ const form = useForm({
     product_type: null,
     subscription_start_date: null,
     subscription_end_date: null,
-    cost: 0,
-    paid_amount: 0,
+    cost: null,
+    paid_amount: null,
     pay_method: null,
 });
 
@@ -100,20 +101,24 @@ watch(() => [
 
 const submit = () => {
     updateFormWithNames();
-    form.client_id = form.client_object.id;
-    form.post(route('sales.store'), {
-        onSuccess: () => {
-            form.reset();
-            allSumPaid.value = false;
-            useTodayDate.value = false;
-            showToast("Продажа успешно добавлена!", "success");
-        },
-        onError: (errors) => {
-            Object.values(errors).forEach(error => {
-                showToast(error, "error");
-            });
-        },
-    });
+    if (form.client_object?.id) {
+        form.client_id = form.client_object.id;
+        form.post(route('sales.store'), {
+            onSuccess: () => {
+                form.reset();
+                allSumPaid.value = false;
+                useTodayDate.value = false;
+                showToast("Продажа успешно добавлена!", "success");
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach(error => {
+                    showToast(error, "error");
+                });
+            },
+        });
+    } else {
+        showToast("Выберите клиента для добавления продажи", "info");
+    }
 };
 
 const useTodayDate = ref(false);
@@ -492,7 +497,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             <label for="allSumPaid" class="ml-1 text-xs text-gray-700 cursor-pointer">Вся сумма</label>
                         </div>
                         <input id="paid_amount" type="number" min="0" step="1" v-model="form.paid_amount"
-                               class="p-1 border border-gray-300 rounded-md"/>
+                               class="p-1 border border-gray-300 rounded-md" required/>
                         <InputError :message="form.errors.paid_amount" class="mt-2 text-sm text-red-600"/>
                     </div>
                     <div class="flex flex-col w-32">
@@ -507,7 +512,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                                     :value="category.id" :key="category.id">{{ category.name }}
                             </option>
                         </select>
-                        <InputError :message="form.errors.paid_amount" class="mt-2 text-sm text-red-600"/>
+                        <InputError :message="form.errors.pay_method" class="mt-2 text-sm text-red-600"/>
                     </div>
                 </div>
                 <div class="mt-4">
@@ -520,11 +525,12 @@ const isProductActive = computed(() => form.service_or_product === 'product');
             <ClientModal :show="showModal" :client="selectedClientCard" @close="closeModal"
                          @client-updated="handleClientUpdated"/>
             <div>
-                <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список всех продаж вашей организации (всего: {{ sales.data.length }})</h3>
+                <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список всех продаж вашей организации</h3>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид спорта/товара</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид услуги</th>
@@ -540,6 +546,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                         <tr v-for="sale in sales.data" :key="sale.id">
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                {{ sale.sale_date ? dayjs(sale.sale_date).format('DD.MM.YY') : '' }}
+                            </td>
                             <td class="px-3 py-2 whitespace-nowrap">{{ sale.client?.surname }} {{ sale.client?.name }}</td>
                             <td class="px-3 py-2 whitespace-nowrap">{{ sale.sport_type ?? sale.product_type }}</td>
                             <td class="px-3 py-2 whitespace-nowrap">

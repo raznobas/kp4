@@ -31,22 +31,25 @@ const form = useForm({
     trainer: null,
     training_date: null,
     training_time: null,
-    hasAppointment: false,
 });
 
 const submit = () => {
-    form.client_id = form.client_object.id;
-    form.post(route('leads.store'), {
-        onSuccess: () => {
-            form.reset();
-            showToast("Запись успешно добавлена!", "success");
-        },
-        onError: (errors) => {
-            Object.values(errors).forEach(error => {
-                showToast(error, "error");
-            });
-        },
-    });
+    if (form.client_object?.id) {
+        form.client_id = form.client_object.id;
+        form.post(route('leads.store'), {
+            onSuccess: () => {
+                form.reset();
+                showToast("Запись успешно добавлена!", "success");
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach(error => {
+                    showToast(error, "error");
+                });
+            },
+        });
+    } else {
+        showToast("Выберите лида для добавления записи", "info");
+    }
 };
 
 // поиск клиента
@@ -116,7 +119,23 @@ const createLead = (formData) => {
     });
 };
 
+// ограничение ставить время раньше текущего если выбрана сегодняшняя дата
+const currentDate = new Date().toISOString().split('T')[0];
+const currentTime = new Date().toTimeString().split(' ')[0].split(':').slice(0, 2).join(':');
 
+watch(() => form.training_date, (newDate) => {
+    if (newDate === currentDate) {
+        if (form.training_time < currentTime) {
+            form.training_time = currentTime;
+        }
+    }
+});
+
+watch(() => form.training_time, (newTime) => {
+    if (form.training_date === currentDate && newTime < currentTime) {
+        form.training_time = currentTime;
+    }
+});
 </script>
 
 <template>
@@ -218,24 +237,18 @@ const createLead = (formData) => {
                         </select>
                         <InputError :message="form.errors.trainer" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col">
-                        <label class="text-sm font-medium text-gray-700">Запись</label>
-                        <input type="checkbox" v-model="form.hasAppointment"
-                               class="mt-1 p-3 border border-gray-300 rounded-md"/>
-                    </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': !form.hasAppointment }">
+                    <div class="flex flex-col w-32">
                         <label for="training_date" class="text-sm font-medium text-gray-700">Дата записи</label>
                         <input id="training_date" type="date" v-model="form.training_date"
                                class="mt-1 p-1 border border-gray-300 rounded-md"
-                               :disabled="!form.hasAppointment" required
+                                required
                         />
                         <InputError class="mt-2" :message="form.errors.training_date"/>
                     </div>
-                    <div class="flex flex-col w-32" :class="{ 'disabled-field': !form.hasAppointment }">
+                    <div class="flex flex-col w-32" >
                         <label for="training_time" class="text-sm font-medium text-gray-700">Время записи</label>
                         <input id="training_time" type="time" v-model="form.training_time"
                                class="mt-1 p-1 border border-gray-300 rounded-md"
-                               :disabled="!form.hasAppointment"
                         />
                     </div>
                 </div>

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Client;
-use App\Models\ClientStatus;
 use App\Models\LeadAppointment;
+use App\Traits\TranslatableAttributes;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +14,7 @@ use Silber\Bouncer\Bouncer;
 class LeadController extends Controller
 {
     use AuthorizesRequests;
+    use TranslatableAttributes;
 
     protected $bouncer;
 
@@ -56,25 +57,30 @@ class LeadController extends Controller
     {
         $this->authorize('manage-leads');
 
+        $today = now()->toDateString();
+        $attributes = $this->getTranslatableAttributes();
+
         $validated = $request->validate([
-            'sale_date' => 'required|date',
+            'sale_date' => [
+                'required',
+                'date',
+                'after_or_equal:' . $today,
+            ],
             'client_id' => 'required|exists:clients,id',
             'director_id' => 'required|exists:users,id',
             'sport_type' => 'nullable|exists:categories,name',
             'service_type' => 'nullable|in:trial,group,minigroup,individual,split',
             'trainer' => 'nullable',
-            'training_date' => 'required|date',
+            'training_date' => [
+                'required',
+                'date',
+                'after_or_equal:' . $today,
+            ],
             'training_time' => 'nullable',
             'status' => 'nullable|in:scheduled,cancelled,completed,no_show',
-        ]);
+        ], [], $attributes);
 
-       $appointment = LeadAppointment::create($validated);
-
-        ClientStatus::create([
-            'client_id' => $appointment->client_id,
-            'status_to' => 'appointment_created',
-            'director_id' => $appointment->director_id,
-        ]);
+       LeadAppointment::create($validated);
 
         return redirect()->back();
     }
