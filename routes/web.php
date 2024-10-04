@@ -6,6 +6,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -88,6 +89,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/delete-request/{id}', [CollaborationController::class, 'deleteRequest'])
             ->name('collaboration.delete-request');
     });
+
+    Route::get('/admin/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/admin/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 });
 
 Route::resource('leads', LeadController::class)

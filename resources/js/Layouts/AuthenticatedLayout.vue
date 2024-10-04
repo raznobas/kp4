@@ -35,7 +35,13 @@ const hasAbility = (ability) => {
                             </div>
 
                             <!-- Navigation Links -->
-                            <div v-if="$page.props.auth.director_id"
+                            <div v-if="$page.props.auth.role === 'admin'"
+                                 class="hidden space-x-8 sm:-my-px sm:ms-10 lg:flex">
+                                <NavLink :href="route('users.index')" :active="route().current('users.index')">
+                                    Пользователи
+                                </NavLink>
+                            </div>
+                            <div v-else
                                  class="hidden space-x-8 sm:-my-px sm:ms-10 lg:flex">
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Панель
@@ -122,7 +128,14 @@ const hasAbility = (ability) => {
                 <!-- Responsive Navigation Menu -->
                 <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
                      class="lg:hidden">
-                    <div class="pt-2 pb-3 space-y-1">
+                    <div v-if="$page.props.auth.role === 'admin'">
+                        <div class="pt-2 pb-3 space-y-1">
+                            <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
+                                Пользователи
+                            </ResponsiveNavLink>
+                        </div>
+                    </div>
+                    <div v-else class="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
                             Панель
                         </ResponsiveNavLink>
