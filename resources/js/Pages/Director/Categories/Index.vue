@@ -52,11 +52,6 @@ const submit = () => {
             alert('Пожалуйста, введите число для кол-ва посещений в неделю');
             return;
         }
-    } else if (form.type.name === 'subscription_duration') {
-        if (isNaN(form.name) || form.name === '') {
-            alert('Пожалуйста, введите значение в месяцах для длительности абонемента. Если ваша длительность в неделях - укажите дробное число, используя "точку"');
-            return;
-        }
     }
 
     form.post(route('categories.store'), {

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('lead_appointments', function (Blueprint $table) {
             $table->id();
-            $table->date('sale_date'); // возможно стоит переименовать
+            $table->date('sale_date');
             $table->integer('client_id')->unsigned();
             $table->string('sport_type')->nullable();
             $table->string('service_type')->nullable();

@@ -559,9 +559,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                                 <span v-else-if="sale.service_type === 'split'">Сплит</span>
                             </td>
                             <td class="px-3 py-2 whitespace-nowrap">
-                                {{ sale.subscription_duration === '0.03' ?
-                                'Разовая' :
-                                (sale.subscription_duration ? Number(sale.subscription_duration).toFixed(0) : '') }}
+                                {{ sale.subscription_duration }}
                                 <span v-if="sale.subscription_duration && sale.visits_per_week">/</span>
                                 {{ sale.visits_per_week}}
                             </td>

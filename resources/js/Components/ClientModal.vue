@@ -148,7 +148,7 @@ const closeModal = () => {
                                 <i class="fa fa-pencil-square-o text-xl text-blue-700" aria-hidden="true"></i>
                             </button>
                         </span>
-                        <span v-if="$page.props.auth.role !== 'manager'" class="ml-3">
+                        <span v-if="$page.props.auth.role === 'director'" class="ml-3">
                             <button title="Удалить" type="button" @click="deleteClient" class="mt-1">
                                 <i class="fa fa-trash text-xl text-red-700" aria-hidden="true"></i>
                             </button>
