@@ -17,21 +17,53 @@ class UserController extends Controller
             return redirect()->back()->withErrors(['error' => 'Вы не администратор']);
         }
 
-        $users = User::where('id', '!=', $user->id)->with('roles')->paginate(50);
+        $sortByRole = $request->input('role', null);
+        $sortByClients = $request->input('clients', null);
+        $sortBySales = $request->input('sales', null);
+
+        $query = User::where('id', '!=', $user->id)->with('roles');
+
+        if ($sortByRole) {
+            $query->whereHas('roles', function ($query) use ($sortByRole) {
+                $query->where('name', $sortByRole);
+            });
+        }
+
+        $query->withCount('clients')->withCount('sales');
+
+        // Сортировка по клиентам
+        if ($sortByClients) {
+            $query->withCount('clients')->orderBy('clients_count', $sortByClients);
+        }
+
+        // Сортировка по продажам
+        if ($sortBySales) {
+            $query->withCount('sales')->orderBy('sales_count', $sortBySales);
+        }
+
+        $users = $query->paginate(50);
 
         // Преобразуем данные для передачи
         $users->getCollection()->transform(function ($user) {
+            $totalClients = $user->clients_count;
+            $totalSales = $user->sales_count;
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'created_at' => $user->created_at,
                 'roles' => $user->roles->pluck('name')->toArray(),
+                'total_clients' => $totalClients,
+                'total_sales' => $totalSales,
             ];
         });
 
         return Inertia::render('Admin/Users', [
             'users' => $users,
+            'sortByRole' => $sortByRole,
+            'sortByClients' => $sortByClients,
+            'sortBySales' => $sortBySales,
         ]);
     }
 

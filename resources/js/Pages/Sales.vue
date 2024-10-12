@@ -524,7 +524,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
             </form>
             <ClientModal :show="showModal" :client="selectedClientCard" @close="closeModal"
                          @client-updated="handleClientUpdated"/>
-            <div>
+            <div v-if="sales.data && sales.data.length > 0">
                 <h3 class="mt-8 mb-4 text-lg font-medium text-gray-900">Список всех продаж вашей организации</h3>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -589,6 +589,9 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                     </table>
                 </div>
                 <Pagination :items="sales" />
+            </div>
+            <div v-else class="text-gray-500">
+                Ничего не найдено
             </div>
         </div>
     </AuthenticatedLayout>

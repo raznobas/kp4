@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CategoryCostController;
 use App\Http\Controllers\CollaborationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\LeadController;
@@ -38,12 +39,8 @@ Route::resource('categories', CategoryController::class)
     ->only(['index', 'store', 'update', 'destroy', 'destroyCost'])
     ->middleware(['auth', 'verified', 'can:manage-categories']);
 
-Route::post('/categories/store-cost', [CategoryController::class, 'storeCost'])
-    ->name('categories.storeCost')
-    ->middleware(['auth', 'verified', 'can:manage-categories']);
-
-Route::delete('/categories/destroy-cost/{id}', [CategoryController::class, 'destroyCost'])
-    ->name('categories.destroyCost')
+Route::resource('categoriesCost', CategoryCostController::class)
+    ->only(['index', 'store', 'update', 'destroy'])
     ->middleware(['auth', 'verified', 'can:manage-categories']);
 
 Route::resource('sales', SaleController::class)
