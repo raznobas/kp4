@@ -23,30 +23,6 @@ const deleteUser = async (userId) => {
     }
 };
 
-const sortingByRole = (role) => {
-    const form = useForm({
-        role: role,
-        clients: props.sortByClients,
-        sales: props.sortBySales,
-    });
-    form.get(route('users.index'), {
-        preserveState: true,
-        preserveScroll: true,
-    });
-};
-
-const sortingByClients = (order) => {
-    const form = useForm({
-        role: props.sortByRole,
-        clients: order,
-        sales: props.sortBySales,
-    });
-    form.get(route('users.index'), {
-        preserveState: true,
-        preserveScroll: true,
-    });
-};
-
 const sortBy = (field, value) => {
     const form = useForm({
         role: field === 'role' ? value : props.sortByRole,

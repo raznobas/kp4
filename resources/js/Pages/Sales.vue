@@ -13,6 +13,7 @@ import ClientLeadForm from "@/Components/ClientLeadForm.vue";
 import { useToast } from "@/useToast";
 import Pagination from "@/Components/Pagination.vue";
 import dayjs from "dayjs";
+import SaleEditForm from "@/Components/SaleEditForm.vue";
 const { showToast } = useToast();
 
 const props = defineProps(['categories', 'categoryCosts', 'sales']);
@@ -224,6 +225,8 @@ const fullName = (option) => {
 // модальное окно
 const showModal = ref(false);
 const showLeadModal = ref(false);
+const showSaleModal = ref(false);
+const selectedSale = ref(null);
 const selectedClientCard = ref(null);
 
 // Обновляем данные о клиенте после того как с дочернего компонента пришел emit после обновления данных
@@ -259,6 +262,8 @@ const closeModal = () => {
     showModal.value = false;
     showLeadModal.value = false;
     selectedClientCard.value = null;
+    showSaleModal.value = false;
+    selectedSale.value = null;
 };
 
 // галочка, которая устанавливает ту же сумму из поля cost в поле paid_amount
@@ -271,11 +276,34 @@ watch(allSumPaid, (newValue) => {
     }
 });
 
-// Условия скрытия полей в зависимости от типов
-const isSubscriptionActive = computed(() => form.service_type === 'group' || form.service_type === 'minigroup');
-const isTrainingCountActive = computed(() => form.service_type === 'individual' || form.service_type === 'split');
-const isServiceActive = computed(() => form.service_or_product === 'service');
-const isProductActive = computed(() => form.service_or_product === 'product');
+// обновление продажи
+const updateSale = (updatedForm) => {
+    updatedForm.put(route('sales.update', selectedSale.value.id), {
+        onSuccess: () => {
+            closeModal();
+            showToast("Продажа успешно обновлена!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
+        },
+    });
+};
+const openEditModal = (sale) => {
+    selectedSale.value = sale;
+    showSaleModal.value = true;
+};
+const deleteSale = (saleId) => {
+    if (confirm('Вы уверены, что хотите удалить эту продажу?')) {
+        try {
+            form.delete(route('sales.destroy', saleId));
+            showToast("Продажа успешно удалена!", "success");
+        } catch (error) {
+            showToast("Ошибка при удалении продажи: " + error.message, "error");
+        }
+    }
+};
 </script>
 
 <template>
@@ -289,6 +317,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
             <Modal :show="showLeadModal" @close="closeModal">
                 <ClientLeadForm :is-lead="false" @submit="createClient"/>
             </Modal>
+            <SaleEditForm :show="showSaleModal" :sale="selectedSale" :categories="categories" :categoryCosts="categoryCosts" @update="updateSale" @close="closeModal"/>
             <form @submit.prevent="submit">
                 <div class="flex flex-row flex-wrap gap-2 auto-cols-max items-end mt-2">
                     <div class="flex flex-col col-span-1 w-32">
@@ -346,7 +375,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.service_or_product" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                    <div class="flex flex-col" >
                         <label for="sport_type" class="text-sm font-medium text-gray-700">Вид спорта</label>
                         <select id="sport_type" v-model="form.sport_type"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
@@ -360,11 +389,10 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.sport_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                    <div class="flex flex-col" >
                         <label for="service_type" class="text-sm font-medium text-gray-700">Вид услуги</label>
                         <select id="service_type" v-model="form.service_type"
-                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
-                                @change="updateServiceType">
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option value="trial">Пробная</option>
                             <option value="group">Групповая</option>
                             <option value="minigroup">Минигруппа</option>
@@ -373,7 +401,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.service_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isProductActive }">
+                    <div class="flex flex-col">
                         <label for="product_types" class="text-sm font-medium text-gray-700">Вид товара</label>
                         <select id="product_types" v-model="form.product_type"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
@@ -386,14 +414,12 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.product_type" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col w-32"
-                         :class="{ 'disabled-field': !isServiceActive || !isSubscriptionActive }">
+                    <div class="flex flex-col w-32">
                         <label for="subscription_duration"
                                class="text-sm font-medium text-gray-700">Длительность абонемента</label>
                         <select id="subscription_duration" v-model="form.subscription_duration"
                                 @change="calculateEndDate"
-                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
-                                :disabled="!isSubscriptionActive">
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option v-if="categories.filter(c => c.type === 'subscription_duration').length === 0" value="" disabled>
                                 Ничего нет
                             </option>
@@ -405,7 +431,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <InputError :message="form.errors.subscription_duration" class="mt-2 text-sm text-red-600"/>
                     </div>
                     <div class="flex flex-col w-32"
-                         :class="{ 'disabled-field': !isServiceActive }">
+                         >
                         <label for="visits_per_week" class="text-sm font-medium text-gray-700">Посещений в
                             неделю</label>
                         <select id="visits_per_week" v-model="form.visits_per_week"
@@ -419,11 +445,10 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.visits_per_week" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive || !isTrainingCountActive }">
+                    <div class="flex flex-col">
                         <label for="training_count" class="text-sm font-medium text-gray-700">Кол-во тренировок</label>
                         <select id="training_count" v-model="form.training_count"
-                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md"
-                                :disabled="!isTrainingCountActive">
+                                class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
                             <option v-if="categories.filter(c => c.type === 'training_count').length === 0" value="" disabled>
                                 Ничего нет
                             </option>
@@ -433,7 +458,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.training_count" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                    <div class="flex flex-col" >
                         <label for="trainer_category" class="text-sm font-medium text-gray-700">Категория
                             тренера</label>
                         <select id="trainer_category" v-model="form.trainer_category"
@@ -447,7 +472,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         </select>
                         <InputError :message="form.errors.trainer_category" class="mt-2 text-sm text-red-600"/>
                     </div>
-                    <div class="flex flex-col" :class="{ 'disabled-field': !isServiceActive }">
+                    <div class="flex flex-col" >
                         <label for="trainer" class="text-sm font-medium text-gray-700">Тренер</label>
                         <select id="trainer" v-model="form.trainer"
                                 class="mt-1 p-1 pe-8 border border-gray-300 rounded-md">
@@ -461,7 +486,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <InputError :message="form.errors.trainer_category" class="mt-2 text-sm text-red-600"/>
                     </div>
                     <div class="flex flex-col w-32"
-                         :class="{ 'disabled-field': !isServiceActive }">
+                         >
                         <label for="subscription_start_date" class="text-sm font-medium text-gray-700">Начало
                             абонемента</label>
                         <div class="-mt-1">
@@ -477,7 +502,7 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                         <InputError :message="form.errors.subscription_start_date" class="mt-2 text-sm text-red-600"/>
                     </div>
                     <div class="flex flex-col w-32"
-                         :class="{ 'disabled-field': !isServiceActive }">
+                         >
                         <label for="subscription_end_date" class="text-sm font-medium text-gray-700">Окончание
                             абонемента</label>
                         <input id="subscription_end_date" type="date" v-model="form.subscription_end_date"
@@ -582,7 +607,17 @@ const isProductActive = computed(() => form.service_or_product === 'product');
                             </td>
                             <td class="px-3 py-2 whitespace-nowrap">{{ sale.pay_method }}</td>
                             <td class="px-3 py-2 whitespace-nowrap">
-                                <button @click="openModal(sale.client_id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
+                                <button @click="openModal(sale.client_id)"
+                                        class="text-indigo-600 hover:text-indigo-900">Карточка
+                                </button>
+                                <span class="ms-4">
+                                <button title="Редактировать" type="button" @click="openEditModal(sale)" class="px-1">
+                                    <i class="fa fa-pencil text-blue-600" aria-hidden="true"></i>
+                                </button>
+                                <button @click="deleteSale(sale.id)" class="px-1 ms-1" title="Удалить продажу">
+                                    <i class="fa fa-trash text-red-600" aria-hidden="true"></i>
+                                </button>
+                               </span>
                             </td>
                         </tr>
                         </tbody>

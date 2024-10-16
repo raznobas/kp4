@@ -44,12 +44,13 @@ class SaleControllerTest extends TestCase
 
         // Создаем фейкового пользователя
         $this->user = User::factory()->create();
+        $this->user->director_id = $this->user->id;
 
         // Назначаем пользователю роль director
         $this->bouncer->assign('director')->to($this->user);
 
         // Создаем фейкового клиента
-        $this->client = Client::factory()->withDirectorId($this->user->id)->create();
+        $this->client = Client::factory()->withDirectorId($this->user->director_id)->create();
 
         // Создаем необходимые категории
         $this->categories = [
@@ -93,7 +94,7 @@ class SaleControllerTest extends TestCase
         $saleData = [
             'sale_date' => now()->toDateString(),
             'client_id' => $this->client->id,
-            'director_id' => $this->user->id,
+            'director_id' => $this->user->director_id,
             'service_or_product' => 'service',
             'sport_type' => 'Футбол',
             'service_type' => 'trial',
@@ -113,7 +114,7 @@ class SaleControllerTest extends TestCase
         // Проверяем, что продажа была добавлена в базу данных
         $this->assertDatabaseHas('sales', [
             'client_id' => $this->client->id,
-            'director_id' => $this->user->id,
+            'director_id' => $this->user->director_id,
             'service_or_product' => 'service',
             'sport_type' => 'Футбол',
             'service_type' => 'trial',
@@ -122,7 +123,109 @@ class SaleControllerTest extends TestCase
             'pay_method' => 'Карта',
         ]);
 
+        // Получаем созданную продажу
+        $sale = Sale::where('client_id', $this->client->id)->first();
+
+        // Проверяем, что пользователь был перенаправлен обратно
+        $response->assertRedirect();
+
+        // Возвращаем созданную продажу для использования в других тестах
+        return $sale;
+    }
+
+    /**
+     * Тест редактирования существующей продажи.
+     *
+     * @return void
+     */
+    public function test_sale_can_be_updated()
+    {
+        // Создаем продажу
+        $sale = Sale::create([
+            'sale_date' => now()->toDateString(),
+            'client_id' => $this->client->id,
+            'director_id' => $this->user->director_id,
+            'service_or_product' => 'service',
+            'sport_type' => 'Футбол',
+            'service_type' => 'trial',
+            'subscription_start_date' => now()->toDateString(),
+            'subscription_end_date' => now()->addMonth()->toDateString(),
+            'cost' => 1000,
+            'paid_amount' => 500,
+            'pay_method' => 'Карта',
+        ]);
+
+        // Новые данные для обновления продажи
+        $updatedSaleData = [
+            'sale_date' => now()->toDateString(),
+            'client_id' => $this->client->id,
+            'director_id' => $sale->director_id,
+            'service_or_product' => 'service',
+            'sport_type' => 'Баскетбол',
+            'service_type' => 'group',
+            'subscription_start_date' => now()->toDateString(),
+            'subscription_end_date' => now()->addMonths(3)->toDateString(),
+            'cost' => 2000,
+            'paid_amount' => 1000,
+            'pay_method' => 'Наличные',
+        ];
+
+        // Аутентифицируем пользователя
+        $this->actingAs($this->user);
+
+        // Отправляем PUT-запрос на обновление продажи
+        $response = $this->put("/sales/{$sale->id}", $updatedSaleData);
+
+        // Проверяем, что продажа была обновлена в базе данных
+        $this->assertDatabaseHas('sales', [
+            'id' => $sale->id,
+            'client_id' => $this->client->id,
+            'director_id' => $sale->director_id,
+            'service_or_product' => 'service',
+            'sport_type' => 'Баскетбол',
+            'service_type' => 'group',
+            'cost' => 2000,
+            'paid_amount' => 1000,
+            'pay_method' => 'Наличные',
+        ]);
+
         // Проверяем, что пользователь был перенаправлен обратно
         $response->assertRedirect();
     }
+
+    /**
+     * Тест удаления продажи.
+     *
+     * @return void
+     */
+    public function test_sale_can_be_deleted()
+    {
+        // Создаем продажу
+        $sale = Sale::create([
+            'sale_date' => now()->toDateString(),
+            'client_id' => $this->client->id,
+            'director_id' => $this->user->director_id,
+            'service_or_product' => 'service',
+            'sport_type' => 'Футбол',
+            'service_type' => 'trial',
+            'subscription_start_date' => now()->toDateString(),
+            'subscription_end_date' => now()->addMonth()->toDateString(),
+            'cost' => 1000,
+            'paid_amount' => 500,
+            'pay_method' => 'Карта',
+        ]);
+
+        // Удаление продажи
+        $this->actingAs($this->user);
+        $response = $this->delete("/sales/{$sale->id}");
+
+        // Проверка, что продажа удалена из базы данных
+        $this->assertDatabaseMissing('sales', [
+            'id' => $sale->id,
+        ]);
+
+        // Проверка, что редирект прошел успешно
+        $response->assertRedirect();
+    }
+
 }
