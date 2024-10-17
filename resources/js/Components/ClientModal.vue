@@ -171,14 +171,14 @@ const closeModal = () => {
                                 <strong>Пол:</strong> {{ client.gender === 'male' ? 'М' : 'Ж' }}<br>
                                 <strong>Источник:</strong> {{ client.ad_source }}
                             </p>
-                            <p class="text-sm text-gray-500">
+                            <!-- <p class="text-sm text-gray-500">
                                 <strong v-if="client.is_lead === 0">Дата создания клиента:</strong>
                                 <strong v-else>Дата создания лида:</strong>
                                 {{ client.created_at ? dayjs(client.created_at).format('DD.MM.YYYY') : '' }}<br>
                                 <span v-if="client.is_lead === 0">
                                     <strong>Дата первого посещения:</strong> {{ firstSaleDate }}<br>
                                 </span>
-                            </p>
+                            </p> -->
                         </div>
                         <form v-else @submit.prevent="submitEdit">
                             <div class="flex flex-row flex-wrap gap-1 items-end">
