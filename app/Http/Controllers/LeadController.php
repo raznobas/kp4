@@ -40,6 +40,7 @@ class LeadController extends Controller
 
         $leadAppointments = LeadAppointment::where('director_id', auth()->user()->director_id)
             ->where('status', 'scheduled')
+            ->with('client:id,name,surname,patronymic,phone,ad_source')
             ->orderBy('training_date', 'desc')
             ->paginate(15, ['*'], 'page_appointments', $leadAppointmentsPage);
 
@@ -78,6 +79,43 @@ class LeadController extends Controller
        LeadAppointment::create($validated);
 
         return redirect()->back();
+    }
+
+    // редактирование пробной тренировки
+    public function update(Request $request, LeadAppointment $lead)
+    {
+        $this->authorize('manage-leads');
+        $today = now()->toDateString();
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'director_id' => 'required|exists:users,id',
+            'sport_type' => 'nullable|exists:categories,name',
+            'service_type' => 'nullable|in:trial,group,minigroup,individual,split',
+            'trainer' => 'nullable',
+            'training_date' => [
+                'required',
+                'date',
+                'after_or_equal:' . $today,
+            ],
+            'training_time' => 'nullable',
+            'status' => 'nullable|in:scheduled,cancelled,completed,no_show',
+        ]);
+        if ($validated['director_id'] != auth()->user()->director_id) {
+            return redirect()->back()->withErrors(['director_id' => 'У вас нет прав на редактирование этой записи.']);
+        }
+        $lead->update($validated);
+        return redirect()->back()->with('success', 'Запись успешно обновлена!');
+    }
+
+    // удаление пробной тренировки
+    public function destroy(LeadAppointment $lead)
+    {
+        $this->authorize('manage-leads');
+        if ($lead->director_id !== auth()->user()->director_id) {
+            return redirect()->back()->withErrors(['error' => 'У вас нет прав на удаление этой задачи.']);
+        }
+        $lead->delete();
+        return redirect()->back()->with('success', "Запись успешно удалена");
     }
 
 }

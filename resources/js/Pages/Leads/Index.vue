@@ -22,6 +22,7 @@ const {showToast} = useToast();
 const props = defineProps(['categories', 'leads', 'leadAppointments']);
 
 const form = useForm({
+    id: null, // символизирует о том, что активно редактирование
     client_object: null,
     client_id: null,
     director_id: usePage().props.auth.director_id,
@@ -135,6 +136,58 @@ watch(() => form.training_time, (newTime) => {
         form.training_time = currentTime;
     }
 });
+
+const editAppointment = (appointment) => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+    form.id = appointment.id; // form.id символизирует о том, что активно редактирование
+    form.sale_date = appointment.sale_date;
+    form.client_object = {
+        id: appointment.client_id,
+        surname: appointment.client.surname,
+        name: appointment.client.name,
+        patronymic: appointment.client.patronymic,
+        phone: appointment.client.phone,
+        ad_source: appointment.client.ad_source,
+    };
+    form.client_id = appointment.client_id;
+    form.sport_type = appointment.sport_type;
+    form.service_type = appointment.service_type;
+    form.trainer = appointment.trainer;
+    form.training_date = appointment.training_date;
+    form.training_time = appointment.training_time;
+    form.hasAppointment = true;
+};
+const submitEdit = () => {
+    form.client_id = form.client_object.id;
+    form.put(route('leads.update', {id: form.id}), {
+        onSuccess: () => {
+            form.reset();
+            showToast("Запись успешно обновлена!", "success");
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach(error => {
+                showToast(error, "error");
+            });
+        },
+    });
+};
+const deleteAppointment = async (appointmentId) => {
+    if (confirm('Вы уверены, что хотите удалить эту запись?')) {
+        form.delete(route('leads.destroy', appointmentId), {
+            onSuccess: () => {
+                showToast("Запись успешно удалена!", "success");
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach(error => {
+                    showToast(error, "error");
+                });
+            },
+        });
+    }
+};
 </script>
 
 <template>
@@ -147,6 +200,7 @@ watch(() => form.training_time, (newTime) => {
                 <ClientLeadForm :is-lead="true" @submit="createLead"/>
             </Modal>
             <form @submit.prevent="submit" class="mt-6">
+                <h3 v-if="form.id" class="mt-8 mb-4 text-lg font-medium text-gray-900">Редактирование записи лида</h3>
                 <div class="flex flex-row flex-wrap gap-2 items-end mt-2">
                     <div class="flex flex-col w-56 relative">
                         <label for="fio" class="text-sm font-medium text-gray-700">Имя
@@ -245,8 +299,12 @@ watch(() => form.training_time, (newTime) => {
                     </div>
                 </div>
                 <div class="mt-4">
-                    <PrimaryButton :disabled="form.processing">Добавить запись</PrimaryButton>
-                    <SecondaryButton class="ml-2" type="button" @click="() => { form.reset(); }">Очистить
+                    <PrimaryButton v-if="!form.id" :disabled="form.processing">Добавить запись</PrimaryButton>
+                    <PrimaryButton v-else type="button" :disabled="form.processing" @click="submitEdit()">
+                       Редактировать запись
+                    </PrimaryButton>
+                    <SecondaryButton class="ml-2" type="button" @click="() => { form.reset(); }">
+                        {{ form.id ? 'Отмена' : 'Очистить' }}
                     </SecondaryButton>
                 </div>
             </form>
@@ -260,6 +318,8 @@ watch(() => form.training_time, (newTime) => {
                             <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID
+                                </th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя
                                 </th>
                                 <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Вид
                                     спорта
@@ -281,6 +341,9 @@ watch(() => form.training_time, (newTime) => {
                             <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-for="appointment in leadAppointments.data" :key="appointment.id">
                                 <td class="px-3 py-2 whitespace-nowrap">{{ appointment.id }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ appointment.client?.surname }} {{ appointment.client?.name }}
+                                </td>
                                 <td class="px-3 py-2 whitespace-nowrap">{{ appointment.sport_type }}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">
                                     <span v-if="appointment.service_type === 'group'">Групповая</span>
@@ -299,6 +362,15 @@ watch(() => form.training_time, (newTime) => {
                                     <button @click="openModal(appointment.client_id)"
                                             class="text-indigo-600 hover:text-indigo-900">Карточка
                                     </button>
+                                    <span class="ms-4">
+                                    <button title="Редактировать" type="button" @click="editAppointment(appointment)" class="px-1">
+                                        <i class="fa fa-pencil text-blue-600" aria-hidden="true"></i>
+                                    </button>
+                                    <button @click="deleteAppointment(appointment.id)" class="px-1 ms-1"
+                                            title="Удалить запись">
+                                        <i class="fa fa-trash text-red-600" aria-hidden="true"></i>
+                                    </button>
+                            </span>
                                 </td>
                             </tr>
                             </tbody>
