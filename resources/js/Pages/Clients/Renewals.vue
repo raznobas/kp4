@@ -1,15 +1,19 @@
 <script setup>
-
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import dayjs from "dayjs";
-import {Head, useForm, usePage} from "@inertiajs/vue3";
 import ClientModal from "@/Components/ClientModal.vue";
 import {ref} from "vue";
 import Pagination from "@/Components/Pagination.vue";
-import { useToast } from "@/useToast";
-const { showToast } = useToast();
+import {useToast} from "@/useToast.js";
+import {Head, useForm} from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-const props = defineProps(['clientsToRenewal']);
+const {showToast} = useToast();
+
+const props = defineProps({
+    clientsToRenewal: Object,
+    filter: String,
+    date: String,
+});
 
 const showModal = ref(false);
 const selectedClient = ref(null);
@@ -31,6 +35,23 @@ const closeModal = () => {
     showModal.value = false;
     selectedClient.value = null;
 };
+
+const form = useForm({
+    filter: props.filter,
+    date: props.date
+});
+
+const sortBy = (field, value) => {
+    if (field === 'end_date') {
+        form.date = value;
+    } else {
+        form.filter = field === 'filter' ? value : form.filter;
+    }
+    form.get(route('clients.renewals'), {
+        preserveState: true,
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
@@ -38,54 +59,89 @@ const closeModal = () => {
 
     <AuthenticatedLayout>
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
-            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов с абонементом истекающим и истекшим в течении последнего месяца</h3>
-            <div v-if="clientsToRenewal.data && clientsToRenewal.data.length > 0">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата рождения</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Абонемент</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Истек/(ает)</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="client in clientsToRenewal.data" :key="client.id">
-                            <td class="px-3 py-2 whitespace-nowrap">{{ client.id }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <span v-if="client.service_type === 'group'">Групповая</span>
-                                <span v-if="client.service_type === 'minigroup'">Минигруппа</span>
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                {{ client.subscription_end_date ? dayjs(client.subscription_end_date).format('DD.MM.YYYY') : '' }}
-                            </td>
-                            <td class="px-3 py-2 whitespace-nowrap">
-                                <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+            <h3 class="mb-4 text-lg font-medium text-gray-900">Список клиентов с абонементом истекающим и истекшим в
+                течении
+                1-го месяца</h3>
+            <div class="mb-4 flex justify-between items-center">
+                <div>
+                    <label for="role" class="mr-2">Сортировать по:</label>
+                    <select id="role" v-model="form.filter" @change="sortBy('filter', $event.target.value)"
+                            class="p-1 px-2 pe-8 border border-gray-300 rounded-md">
+                        <option value="expired">Истекшим в течении 1-го месяца</option>
+                        <option value="upcoming">Истекающим в течении недели</option>
+                    </select>
                 </div>
-                <Pagination :items="clientsToRenewal" />
+            </div>
+            <div v-if="clientsToRenewal.data && clientsToRenewal.data.length > 0">
+                <table v-if="clientsToRenewal && clientsToRenewal.data" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата
+                            рождения
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Телефон
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Почта
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Абонемент
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div class="flex align-middle items-center">
+                                <span v-if="form.filter === 'expired'">Истек</span>
+                                <span v-else-if="form.filter === 'upcoming'">Истекает</span>
+                                <button @click="sortBy('end_date', date === 'asc' ? 'desc' : 'asc')">
+                                     <span>
+                                         <svg width="20" version="1.1"
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              xmlns:xlink="http://www.w3.org/1999/xlink"
+                                              viewBox="0 0 16 16"><path
+                                             fill="#444444" d="M11 7h-6l3-4z"/><path
+                                             fill="#444444" d="M5 9h6l-3 4z"/></svg>
+                                    </span>
+                                </button>
+                            </div>
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Действия
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="client in clientsToRenewal.data" :key="client.id">
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.surname }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.name }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            {{ client.birthdate ? dayjs(client.birthdate).format('DD.MM.YYYY') : '' }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.phone }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ client.email }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span v-if="client.service_type === 'group'">Групповая</span>
+                            <span v-if="client.service_type === 'minigroup'">Минигруппа</span>
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            {{
+                                client.subscription_end_date ? dayjs(client.subscription_end_date).format('DD.MM.YYYY') : ''
+                            }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <button @click="openModal(client.id)" class="text-indigo-600 hover:text-indigo-900">Карточка
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <Pagination :items="clientsToRenewal"/>
             </div>
             <div v-else class="text-gray-500">
                 Ничего не найдено
             </div>
             <ClientModal :show="showModal" :client="selectedClient"
-                         @close="closeModal" @client-updated="handleClientUpdated" />
+                         @close="closeModal" @client-updated="handleClientUpdated"/>
         </div>
     </AuthenticatedLayout>
 </template>

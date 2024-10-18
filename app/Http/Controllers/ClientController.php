@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\LeadAppointment;
 use App\Models\Sale;
 use App\Traits\TranslatableAttributes;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -149,70 +150,97 @@ class ClientController extends Controller
         return response()->json($client);
     }
 
-    public function renewals()
+    public function renewals(Request $request)
     {
-        $this->authorize('manage-sales');
         if (auth()->user()->director_id === null) {
             return false;
         }
 
         $currentDate = now();
+        $filter = $request->input('filter', 'expired'); // По умолчанию фильтр
+        $date = $request->input('date', 'asc'); // По умолчанию сортировка
 
-        // Получаем всех клиентов с абонементами, отсортированными по дате окончания
-        $clients = Client::where('director_id', auth()->user()->director_id)
-            ->where('is_lead', false)
-            ->whereHas('sales', function ($query) use ($currentDate) {
-                $query->whereIn('service_type', ['group', 'minigroup']);
+        // Получаем все продажи с групповыми абонементами от 1 месяца и больше
+        $salesQuery = Sale::whereHas('client', function ($query) {
+            $query->where('director_id', auth()->user()->director_id)
+                ->where('is_lead', false);
+        })
+            ->whereIn('service_type', ['group', 'minigroup'])
+            ->where('subscription_duration', '>=', 1)
+            ->where(function ($query) use ($currentDate, $filter) {
+                if ($filter === 'upcoming') {
+                    $query->where('subscription_end_date', '<=', $currentDate->copy()->addDays(7))
+                        ->where('subscription_end_date', '>', $currentDate);
+                } elseif ($filter === 'expired') {
+                    $query->whereBetween('subscription_end_date', [
+                        $currentDate->copy()->subMonth()->startOfDay(),
+                        $currentDate->copy()->startOfDay()
+                    ]);
+                }
             })
-            ->with(['sales' => function ($query) use ($currentDate) {
-                $query->select('client_id', 'subscription_end_date', 'service_type')
-                    ->whereIn('service_type', ['group', 'minigroup'])
-                    ->orderBy('subscription_end_date', 'desc')
-                    ->limit(1);
-            }])
-            ->select('id', 'surname', 'name', 'birthdate', 'phone', 'email')
-            ->get();
+            ->orderBy('subscription_end_date', $date) // Применяем сортировку
+            ->with('client:id,surname,name,birthdate,phone,email');
 
-        // Фильтруем клиентов по условиям
-        $clientsToRenewal = $clients->filter(function ($client) use ($currentDate) {
-            $subscriptionEndDate = $client->sales->first()->subscription_end_date ?? null;
+        $sales = $salesQuery->get()
+            ->groupBy('client.id')
+            ->map(function ($sales) {
+                return $sales->first();
+            })
+            ->values();
+
+        // Фильтруем продажи по условиям
+        $salesToRenewal = $sales->filter(function ($sale) use ($currentDate, $filter) {
+            $subscriptionEndDate = $sale->subscription_end_date ? Carbon::parse($sale->subscription_end_date) : null;
 
             if ($subscriptionEndDate === null) {
                 return false;
             }
 
-            // Проверяем, есть ли у клиента хотя бы один действующий абонемент
-            $hasActiveSubscription = Sale::where('client_id', $client->id)
-                ->where('subscription_end_date', '>', $currentDate)
-                ->exists();
-            if ($hasActiveSubscription) {
-                return false;
+            // Проверяем, есть ли у клиента хотя бы один действующий абонемент только для фильтра 'expired'
+            if ($filter === 'expired') {
+                $hasActiveSubscription = Sale::where('client_id', $sale->client->id)
+                    ->where('subscription_end_date', '>', $currentDate)
+                    ->exists();
+                if ($hasActiveSubscription) {
+                    return false;
+                }
             }
 
-            // Клиенты, у которых заканчивается абонемент в течение недели
-            if ($subscriptionEndDate <= (clone $currentDate)->addDays(7) && $subscriptionEndDate >= $currentDate) {
+            // Продажи, у которых заканчивается абонемент в течение недели
+            if ($filter === 'upcoming' && $subscriptionEndDate->lte($currentDate->copy()->addDays(7)) && $subscriptionEndDate->gte($currentDate)) {
                 return true;
             }
 
-            // Клиенты, у которых абонемент закончился в течение последнего месяца
-            if ($subscriptionEndDate >= (clone $currentDate)->subMonth()->startOfDay() && $subscriptionEndDate < $currentDate->startOfDay()) {
+            // Продажи, у которых абонемент закончился в течение последнего месяца
+            if ($filter === 'expired' && $subscriptionEndDate->gte($currentDate->copy()->subMonth()->startOfDay()) && $subscriptionEndDate->lt($currentDate->copy()->startOfDay())) {
                 return true;
             }
 
             return false;
         });
 
-        // Добавляем поля из sales к каждому клиенту
-        $clientsToRenewal->each(function ($client) {
-            $client->subscription_end_date = $client->sales->first()->subscription_end_date ?? null;
-            $client->service_type = $client->sales->first()->service_type ?? null;
+        // Преобразуем данные для удобства использования в представлении
+        $clientsToRenewal = $salesToRenewal->map(function ($sale) {
+            return [
+                'id' => $sale->client->id,
+                'surname' => $sale->client->surname,
+                'name' => $sale->client->name,
+                'birthdate' => $sale->client->birthdate,
+                'phone' => $sale->client->phone,
+                'email' => $sale->client->email,
+                'subscription_end_date' => $sale->subscription_end_date,
+                'service_type' => $sale->service_type,
+                'subscription_duration' => $sale->subscription_duration,
+            ];
         });
 
         // Пагинация на стороне сервера
-        $paginatedClients = $this->serverPaginate($clientsToRenewal);
+        $paginatedRenewals = $this->serverPaginate($clientsToRenewal);
 
         return Inertia::render('Clients/Renewals', [
-            'clientsToRenewal' => $paginatedClients,
+            'clientsToRenewal' => $paginatedRenewals,
+            'filter' => $filter,
+            'date' => $date,
         ]);
     }
 
