@@ -104,7 +104,7 @@ const deleteManager = (managerId) => {
                                     <button @click="rejectRequest(request.id)" class="text-red-600 ml-3">Отклонить</button>
                                 </span>
                                     <span v-else-if="request.status === 'approved'">
-                                    <button @click="deleteManager(request.manager_id)" class="text-red-600 ml-3">Удалить</button>
+                                    <button @click="deleteManager(request.manager_id)" class="text-red-600">Удалить</button>
                                 </span>
                                 </td>
                             </tr>

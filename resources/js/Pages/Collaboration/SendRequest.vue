@@ -91,7 +91,12 @@ const submit = () => {
                     </form>
 
                     <div v-if="currentRequest && currentRequest.status !== 'approved'" class="text-gray-900">
-                        У вас уже есть активная заявка, чтобы подать другую, отмените текущую
+                        <span v-if="currentRequest.status === 'rejected'">
+                            Ваша текущая заявка была отклонена.
+                        </span>
+                        <span v-else>
+                            У вас уже есть активная заявка, чтобы подать другую, отмените текущую
+                        </span>
                         <h3 class="text-xl mt-4 mb-1 font-bold text-gray-800 leading-tight">Текущая заявка: </h3>
                         <p><strong>Почта директора:</strong> {{ currentRequest.director_email }}</p>
                         <p><strong>Статус:</strong>
@@ -106,7 +111,12 @@ const submit = () => {
                             </span>
                         </p>
                         <DangerButton class="mt-3" @click="deleteRequest(currentRequest.id)">
-                            Отменить заявку
+                            <span v-if="currentRequest.status === 'rejected'">
+                                Подать другую заявку
+                            </span>
+                            <span v-else>
+                                Отменить заявку
+                            </span>
                         </DangerButton>
                     </div>
                     <div v-else-if="currentRequest && currentRequest.status === 'approved'">

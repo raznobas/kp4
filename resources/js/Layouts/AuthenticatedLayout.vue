@@ -43,22 +43,22 @@ const hasAbility = (ability) => {
                             </div>
                             <div v-else
                                  class="hidden space-x-8 sm:-my-px sm:ms-10 lg:flex">
-                                <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('dashboard')" :active="route().current('dashboard')">
                                     Панель
                                 </NavLink>
-                                <NavLink :href="route('clients.index')" :active="route().current('clients.index')">
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('clients.index')" :active="route().current('clients.index')">
                                     Клиенты
                                 </NavLink>
-                                <NavLink :href="route('clients.old')" :active="route().current('clients.old')">
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('clients.old')" :active="route().current('clients.old')">
                                     Старые клиенты
                                 </NavLink>
-                                <NavLink :href="route('leads.index')" :active="route().current('leads.index')">
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('leads.index')" :active="route().current('leads.index')">
                                     Лиды
                                 </NavLink>
-                                <NavLink :href="route('sales.index')" :active="route().current('sales.index')">
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('sales.index')" :active="route().current('sales.index')">
                                     Продажи
                                 </NavLink>
-                                <NavLink :href="route('clients.renewals')"
+                                <NavLink v-if="$page.props.auth.director_id" :href="route('clients.renewals')"
                                          :active="route().current('clients.renewals')">
                                     Продление
                                 </NavLink>

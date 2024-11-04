@@ -106,6 +106,7 @@ const deleteClient = async () => {
                 });
             },
         });
+        closeModal();
     }
 };
 

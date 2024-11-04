@@ -22,9 +22,15 @@ class CollaborationController extends Controller
     {
         $user = $request->user();
 
+        // Проверяем, что текущий пользователь является директором
+        if (!Auth::check() || !$this->bouncer->is($user)->a('director')) {
+            return redirect()->route('dashboard');
+        }
+
         // Получаем все запросы для текущего директора
         $requests = CollaborationRequest::where('director_id', $user->director_id)
             ->whereIn('status', ['approved', 'pending'])
+            ->orderBy('created_at', 'desc')
             ->paginate(15);
 
         return Inertia::render('Collaboration/AllRequests', [
@@ -32,8 +38,25 @@ class CollaborationController extends Controller
         ]);
     }
 
+    public function indexSendRequest(Request $request)
+    {
+        $user = $request->user();
+
+        // Проверяем, что текущий пользователь является менеджером
+        if (!Auth::check() || !$this->bouncer->is($user)->a('manager')) {
+            return redirect()->route('dashboard');
+        }
+
+        return Inertia::render('Collaboration/SendRequest');
+    }
+
     public function approveRequest($requestId)
     {
+        // Проверяем, что текущий пользователь аутентифицирован и является директором
+        if (!Auth::check() || !$this->bouncer->is(Auth::user())->a('director')) {
+            return redirect()->back()->withErrors(['error' => 'Только директора могут одобрять заявки.']);
+        }
+
         $request = CollaborationRequest::findOrFail($requestId);
 
         $manager = User::findOrFail($request->manager_id);
@@ -51,6 +74,11 @@ class CollaborationController extends Controller
 
     public function rejectRequest($requestId)
     {
+        // Проверяем, что текущий пользователь аутентифицирован и является директором
+        if (!Auth::check() || !$this->bouncer->is(Auth::user())->a('director')) {
+            return redirect()->back()->withErrors(['error' => 'Только директора могут отклонять заявки.']);
+        }
+
         $request = CollaborationRequest::findOrFail($requestId);
 
         // Устанавливаем статус заявки на "отклонено"
@@ -62,6 +90,11 @@ class CollaborationController extends Controller
 
     public function deleteManager($managerId)
     {
+        // Проверяем, что текущий пользователь аутентифицирован и является директором
+        if (!Auth::check() || !$this->bouncer->is(Auth::user())->a('director')) {
+            return redirect()->back()->withErrors(['error' => 'Только директора могут удалять менеджеров.']);
+        }
+
         $manager = User::findOrFail($managerId);
 
         $request = CollaborationRequest::where('manager_id', $managerId)->first();
@@ -87,6 +120,11 @@ class CollaborationController extends Controller
 
     public function sendRequest(Request $request)
     {
+        // Проверяем, что текущий пользователь является менеджером
+        if (!Auth::check() || !$this->bouncer->is(Auth::user())->a('manager')) {
+            return redirect()->back()->withErrors(['error' => 'Только менеджеры могут отправлять заявки.']);
+        }
+
         $request->validate([
             'director_email' => 'required|email',
         ]);

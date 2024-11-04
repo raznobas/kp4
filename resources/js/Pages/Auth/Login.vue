@@ -97,7 +97,7 @@ const submit = () => {
                                 Нет аккаунта?
                             </Link>
 
-                            <SecondaryButton id="submit" type="submit" class="ms-4 text-white" :class="{ 'opacity-25': form.processing }"
+                            <SecondaryButton id="submit" type="submit" class="ms-4" :class="{ 'opacity-25': form.processing }"
                                            :disabled="form.processing">
                                 Войти
                             </SecondaryButton>
@@ -111,14 +111,6 @@ const submit = () => {
 
 <style scoped>
 @import url('https://rsms.me/inter/inter-ui.css');
-
-::selection {
-    background: #2D2F36;
-}
-
-::-moz-selection {
-    background: #2D2F36;
-}
 
 .body {
     background: white;

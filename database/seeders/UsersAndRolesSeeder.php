@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\CollaborationRequest;
 use Silber\Bouncer\BouncerFacade as Bouncer;
 
 class UsersAndRolesSeeder extends Seeder
@@ -69,6 +69,15 @@ class UsersAndRolesSeeder extends Seeder
                 Bouncer::assign('manager')->to($manager);
                 $manager->director_id = $director->id; // Устанавливаем связь с директором
                 $manager->save();
+
+                // Создаем запись в таблице collaboration_requests
+                CollaborationRequest::create([
+                    'manager_id' => $manager->id,
+                    'director_id' => $director->id,
+                    'manager_email' => $manager->email,
+                    'director_email' => $director->email,
+                    'status' => 'approved', // или другой статус по умолчанию
+                ]);
             }
         }
     }

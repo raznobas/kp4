@@ -63,9 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('collaboration')->group(function () {
-        Route::get('/send-request', function () {
-            return Inertia::render('Collaboration/SendRequest');
-        })->name('collaboration.send-request');
+        Route::get('/send-request', [CollaborationController::class, 'indexSendRequest'])
+            ->name('collaboration.send-request');
 
         Route::get('/get-current-request/{id}', [CollaborationController::class, 'getCurrentRequest'])
             ->name('collaboration.getCurrentRequest');

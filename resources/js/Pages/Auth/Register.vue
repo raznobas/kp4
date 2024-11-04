@@ -128,14 +128,6 @@ const submit = () => {
 <style scoped>
 @import url('https://rsms.me/inter/inter-ui.css');
 
-::selection {
-    background: #2D2F36;
-}
-
-::-moz-selection {
-    background: #2D2F36;
-}
-
 .body {
     background: white;
     font-family: 'Inter UI', sans-serif;
