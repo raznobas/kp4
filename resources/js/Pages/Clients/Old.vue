@@ -44,7 +44,7 @@ const closeModal = () => {
     <AuthenticatedLayout>
         <div class="mx-auto p-4 sm:p-6 lg:p-8">
             <h3 class="mb-4 text-lg font-medium text-gray-900">Список старых клиентов</h3>
-            <div v-if="oldClients.data && oldClients.data.length > 0">
+            <div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -95,7 +95,7 @@ const closeModal = () => {
                 </div>
                 <Pagination :items="oldClients"/>
             </div>
-            <div v-else class="text-gray-500">
+            <div v-if="oldClients.data.length < 1" class="text-gray-500">
                 Ничего не найдено
             </div>
             <ClientModal :show="showModal" :client="selectedClient"

@@ -72,8 +72,8 @@ const sortBy = (field, value) => {
                     </select>
                 </div>
             </div>
-            <div v-if="clientsToRenewal.data && clientsToRenewal.data.length > 0">
-                <table v-if="clientsToRenewal && clientsToRenewal.data" class="min-w-full divide-y divide-gray-200">
+            <div>
+                <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                     <tr>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фамилия
@@ -137,7 +137,7 @@ const sortBy = (field, value) => {
                 </table>
                 <Pagination :items="clientsToRenewal"/>
             </div>
-            <div v-else class="text-gray-500">
+            <div v-if="clientsToRenewal.data.length < 1" class="text-gray-500">
                 Ничего не найдено
             </div>
             <ClientModal :show="showModal" :client="selectedClient"

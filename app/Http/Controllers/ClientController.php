@@ -296,8 +296,11 @@ class ClientController extends Controller
             $client->subscription_end_date = $client->sales->first()->subscription_end_date ?? null;
         });
 
+        // Сортируем клиентов по subscription_end_date в порядке убывания
+        $sortedCollection = $oldClients->sortByDesc('subscription_end_date')->values();
+
         // Пагинация на стороне сервера
-        $paginatedClients = $this->serverPaginate($oldClients);
+        $paginatedClients = $this->serverPaginate($sortedCollection);
 
         return Inertia::render('Clients/Old', [
             'oldClients' => $paginatedClients,
