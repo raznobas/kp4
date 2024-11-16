@@ -584,7 +584,7 @@ const deleteSale = (saleId) => {
                                 <span v-else-if="sale.service_type === 'split'">Сплит</span>
                             </td>
                             <td class="px-3 py-2 whitespace-nowrap">
-                                {{ sale.subscription_duration }}
+                                {{ Math.round(sale.subscription_duration) }}
                                 <span v-if="sale.subscription_duration && sale.visits_per_week">/</span>
                                 {{ sale.visits_per_week}}
                             </td>
